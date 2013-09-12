@@ -164,4 +164,4 @@ let rec interp (init_state : state) : state =
     let instr : inst = word2inst word in
     let new_state = run_inst instr init_state in
     interp new_state
-
+ 
