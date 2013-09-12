@@ -65,7 +65,7 @@ type state = { r : regfile; pc : int32; m : memory }
 let push_reg (onto: int32) (r: reg) = 
   push onto 5 Int32.of_int (reg2ind r)
 
-let inst2word (i: inst) : byte =
+let inst2word (i: inst) : int32 =
   match i with
   | Add (rd, rs, rt) -> 
     let val1 = push_reg 0x0l rs;
@@ -121,7 +121,19 @@ let rec assem (prog : program) : state =
     {r=empty_rf; pc=pos; m=load(prog, empty_mem, pos)}
 
 
-let run_inst (i : inst) (s: state) : state = (* TODO *);
+let run_inst (i : inst) (s: state) : state = (* TODO *)
+  match i with
+    | Add (rd, rs, rt) -> 
+      let sum = Int32.add (rf_lookup rs s.r) (rf_lookup rt s.r) in
+        rf_update sum s.r
+    | Beq (rs, rt, offset) ->
+    | Jr (rs) ->
+    | Jal (target) ->
+    | Li (rdest, imm) ->     
+    | Lui (rt, imm) -> 
+    | Ori (rt, rs, imm) ->
+    | Lw (rt, address, offset) -> 
+    | Sw (rt, address, offset) ->;
 
 (* Given a starting state, simulate the Mips machine code to get a final state *)
 let rec interp (init_state : state) : state = 
