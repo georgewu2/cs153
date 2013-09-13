@@ -38,9 +38,20 @@ let push (onto : int32) (length : int) (value : int32) : int32 =
 
 let _ = assert ( push 1l 5 1l = 33l ) 
 
+let pop (value: int32) (length : int) : int32*int32 = 
+  (* TODO Explain in comment *)
+  let e = Int32.logand (Int32.pred (Int32.shift_left Int32.one length)) (value) in
+  (e, Int32.shift_right_logical value length)
+
+let _ = assert ( pop 33l 5 = (1l,1l) )
+
 (* Helper function for registers specifically *)
-let push_reg (onto : int32) (r : reg) = 
+let push_reg (onto : int32) (r : reg) : int32 = 
   push onto 5 (Int32.of_int (reg2ind r))
+
+let pop_reg (from : int32) : reg * int32 = 
+  let r,v = pop from 5 in
+  ((ind2reg (Int32.to_int r)),v) 
 
 (* Converts an instruction into the corresponding encoding *)
 let rec inst2word (instr : inst) : int32 = 
@@ -82,6 +93,18 @@ let rec inst2word (instr : inst) : int32 =
     let val2 = push_reg val1 rt in
     push val2 16 offset
 
+let word2inst (word: int32) : inst = 
+  let _,code = pop word (32-5) in
+  match code with 
+  | 0x0l -> 
+    let _,word = pop word 6 in
+    let rd,word = pop_reg word in
+    let rt,word = pop_reg word in
+    let rs,_ = pop_reg word in
+    Add(rd,rs,rt)
+  | _ -> raise (Failure "Instruction not found/implemented")
+
+
 (* TODO test *) (* Adds an encoding to memory *)
 let mem_update_word (a : int32) (word : int32) (m : memory) : memory =
   let byte0 = mk_byte word in
@@ -118,8 +141,6 @@ let mem_lookup_word (a : int32) (m : memory) : int32 =
   let word = push (b2i32 (byte3)) 8 (b2i32 (byte2)) in
   let word = push word 8 (b2i32 (byte1)) in
   push word 8 (b2i32 (byte0))
-
-let word2inst (word: int32) : inst = raise TODO
 
 let run_inst (i : inst) (s: state) : state = s(* TODO 
   match i with

@@ -45,6 +45,18 @@ let reg2ind r =
   | R24 -> 24 | R25 -> 25 | R26 -> 26 | R27 -> 27
   | R28 -> 28 | R29 -> 29 | R30 -> 30 | R31 -> 31
  
+let ind2reg i =
+  match i with
+    0 -> R0 | 1 -> R1 | 2 -> R2 | 3 -> R3
+  | 4 -> R4 | 5 -> R5 | 6 -> R6 | 7 -> R7
+  | 8 -> R8 | 9 -> R9 | 10 -> R10 | 11 -> R11
+  | 12 -> R12 | 13 -> R13 | 14 -> R14 | 15 -> R15
+  | 16 -> R16 | 17 -> R17 | 18 -> R18 | 19 -> R19
+  | 20 -> R20 | 21 -> R21 | 22 -> R22 | 23 -> R23
+  | 24 -> R24 | 25 -> R25 | 26 -> R26 | 27 -> R27
+  | 28 -> R28 | 29 -> R29 | 30 -> R30 | 31 -> R31
+  | _ -> raise (Failure "Invalid register specified")
+
 (* A small subset of the Mips assembly language *)
 type inst =
   Add of reg * reg * reg  
