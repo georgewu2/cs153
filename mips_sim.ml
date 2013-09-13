@@ -70,11 +70,8 @@ let rec inst2word (instr : inst) : int32 list =
     let val1 = push_reg 0x0l rs in
     let val2 = push val1 15 0x0l in
     (push val2 6 0x8l)::[]
-
   | Jal (target) ->
     push 0x3l 26 target::[]
-  (* same as Lui (rd, hi16) + Ori (rd, rd, lo16) *)
-  (* ask how to include 2 instructions in one word? *)
   | Li (rdest, imm) ->
     (inst2word (Lui (rdest, Int32.shift_right imm 16)))@
     (inst2word (Ori (rdest, rdest, (Int32.logand 0xFFFFl imm))))
@@ -154,11 +151,15 @@ let word2inst (word: int32) : inst = raise TODO
 let run_inst (i : inst) (s: state) : state = (* TODO *)
   match i with
     | Add (rd, rs, rt) -> 
-      let sum = Int32.add (rf_lookup (reg2ind rs) s.r) (rf_lookup (reg2ind rt) s.r) in
+      let sum = Int32.add (rf_lookup (reg2ind rs) s.r) 
+        (rf_lookup (reg2ind rt) s.r) 
+      in
       {r = rf_update (reg2ind rd) sum s.r; pc = (Int32.add s.pc 4l); m = s.m}
     | Beq (rs, rt, offset) ->
-      if ((Int32.compare (rf_lookup (reg2ind rs) s.r) (rf_lookup (reg2ind rt) s.r)) = 0)
-      then {r = s.r; pc = (Int32.add (Int32.add s.pc 4l) (Int32.mul 4l offset)); m = s.m}
+      if ((Int32.compare (rf_lookup (reg2ind rs) s.r) 
+        (rf_lookup (reg2ind rt) s.r)) = 0)
+      then {r = s.r; pc = (Int32.add (Int32.add s.pc 4l) 
+        (Int32.mul 4l offset)); m = s.m}
       else {r = s.r; pc = (Int32.add s.pc 4l); m = s.m}
     | Jr (rs) -> 
       {r = s.r; pc = Int32.mul 4l (rf_lookup (reg2ind rs) s.r); m = s.m}
@@ -166,10 +167,26 @@ let run_inst (i : inst) (s: state) : state = (* TODO *)
       {r = rf_update 31 (Int32.add s.pc 4l) s.r; 
         pc = Int32.mul 4l (Int32.shift_left target 2); m = s.m}
     | Li (rdest, imm) -> raise(Failure "not possible")
-    | Lui (rt, imm) -> s
-    | Ori (rt, rs, imm) -> s
-    | Lw (rt, address, offset) -> s
-    | Sw (rt, address, offset) -> s
+    | Lui (rt, imm) -> 
+      let zeroed = Int32.logand 0xFFFFl (rf_lookup (reg2ind rt) s.r) in
+      let shifted_imm = Int32.shift_left imm 16 in
+      {r = rf_update (reg2ind rt) (Int32.logor shifted_imm zeroed) s.r;
+      pc = (Int32.add s.pc 4l); m = s.m}
+    | Ori (rt, rs, imm) ->
+      {r = rf_update (reg2ind rt) 
+      (Int32.logor (rf_lookup (reg2ind rs) s.r) imm) s.r; 
+      pc = Int32.add s.pc 4l; m = s.m}
+    | Lw (rt, address, offset) -> 
+      let word = mem_lookup_word 
+        (Int32.add (Int32.of_int (reg2ind address)) offset) s.m in
+      {r = rf_update (reg2ind rt) (Int32.add word offset) s.r;
+      pc = Int32.add s.pc 4l; m = s.m}
+    | Sw (rt, address, offset) -> 
+      let word = rf_lookup (reg2ind rt) s.r in
+      let mem_location = Int32.add (Int32.of_int (reg2ind address)) offset in
+      {r = s.r; pc = Int32.add s.pc 4l; 
+      m = mem_update_word mem_location word s.m}
+
 
 (* Testing memory word functions *)
 let _ =
