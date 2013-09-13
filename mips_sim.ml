@@ -159,11 +159,14 @@ let _ =
   Ori(R7,R8,0x1020l);
   Lw(R18,R19,0x4321l);
   Sw(R23,R26,0x8765l)] in
-  List.iter (fun i -> 
+  List.iter 
+  (fun i -> 
     let word = List.hd (inst2word i) in
-    print_string (inst2str i);
-    print_string (Int32.to_string word);
-    assert ( word2inst word = i ) ) insts
+    Printf.printf "%s" (inst2str i);
+    Printf.printf " 0x%08lX\n" word;
+    Printf.printf "%s\n" (inst2str (word2inst word));
+    assert ( word2inst word = i ) )
+  insts
 
 (* TODO test *) (* Adds an encoding to memory *)
 let mem_update_word (a : int32) (word : int32) (m : memory) : memory =
