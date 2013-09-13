@@ -105,7 +105,7 @@ let rec inst2word (instr : inst) : int32 list =
     push val2 16 offset::[]
 
 let word2inst (word: int32) : inst = 
-  let _,code = pop word (32-5) in
+  let _,code = pop word (32-6) in
   match code with 
   | 0x0l -> 
     let last,word = pop word 6 in
@@ -162,9 +162,6 @@ let _ =
   List.iter 
   (fun i -> 
     let word = List.hd (inst2word i) in
-    Printf.printf "%s" (inst2str i);
-    Printf.printf " 0x%08lX\n" word;
-    Printf.printf "%s\n" (inst2str (word2inst word));
     assert ( word2inst word = i ) )
   insts
 
@@ -209,8 +206,6 @@ let mem_lookup_word (a : int32) (m : memory) : int32 =
   let word = push (b2i32 (byte3)) 8 (b2i32 (byte2)) in
   let word = push word 8 (b2i32 (byte1)) in
   push word 8 (b2i32 (byte0))
-
-let word2inst (word: int32) : inst = raise TODO
 
 let run_inst (i : inst) (s: state) : state = (* TODO *)
   match i with
