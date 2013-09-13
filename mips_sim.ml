@@ -171,10 +171,10 @@ let mem_update_word (a : int32) (word : int32) (m : memory) : memory =
   let byte1 = mk_byte (Int32.shift_right_logical word 8) in
   let byte2 = mk_byte (Int32.shift_right_logical word 16) in
   let byte3 = mk_byte (Int32.shift_right_logical word 24) in
-  let m0 = mem_update (Int32.add a 0l) byte0 m in
-  let m1 = mem_update (Int32.add a 1l) byte1 m0 in
-  let m2 = mem_update (Int32.add a 2l) byte2 m1 in
-  mem_update (Int32.add a 3l) byte3 m2
+  let m = mem_update (Int32.add a 0l) byte0 m in
+  let m = mem_update (Int32.add a 1l) byte1 m in
+  let m = mem_update (Int32.add a 2l) byte2 m in
+  mem_update (Int32.add a 3l) byte3 m
 
 let rec mem_update_list (pos : int32) (instrs : int32 list) (m : memory) : memory = 
   match instrs with
