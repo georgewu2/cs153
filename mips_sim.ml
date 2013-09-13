@@ -96,12 +96,47 @@ let word2inst (word: int32) : inst =
   let _,code = pop word (32-5) in
   match code with 
   | 0x0l -> 
-    let _,word = pop word 6 in
-    let rd,word = pop_reg word in
+    let last,word = pop word 6 in
+    if last = 0x20l then
+      let _,word = pop word 5 in
+      let rd,word = pop_reg word in
+      let rt,word = pop_reg word in
+      let rs,_ = pop_reg word in
+        Add(rd,rs,rt)
+    else
+      let _,word = pop word 15 in
+      let rs,_ = pop_reg word in
+        Jr (rs)
+  | 0x3l -> 
+    let target,_ = pop word 26 in
+      Jal (target)
+  | 0x4l -> 
+    let offset,word = pop word 16 in
     let rt,word = pop_reg word in
     let rs,_ = pop_reg word in
-    Add(rd,rs,rt)
+      Beq (rs, rt, offset)
+  | 0xdl -> 
+    let imm,word = pop word 16 in
+    let rt,word = pop_reg word in
+    let rs,_ = pop_reg word in
+      Ori (rt, rs, imm)
+  | 0xfl ->
+    let imm,word = pop word 16 in
+    let rt,_ = pop_reg word in
+      Lui (rt,imm)
+  | 0x23l ->
+    let offset,word = pop word 16 in 
+    let rt,word = pop_reg word in 
+    let rs,_ = pop_reg word in 
+      Lw (rt, rs, offset)
+  | 0x2bl ->
+    let offset,word = pop word 16 in 
+    let rt,word = pop_reg word in 
+    let rs,_ = pop_reg word in 
+      Sw (rt, rs, offset)
   | _ -> raise (Failure "Instruction not found/implemented")
+
+(* TODO test*)
 
 
 (* TODO test *) (* Adds an encoding to memory *)
