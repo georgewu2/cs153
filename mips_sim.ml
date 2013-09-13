@@ -32,6 +32,18 @@ let string_of_mem (m : memory) : string =
 (* State *)
 type state = { r : regfile; pc : int32; m : memory }
 
+let inst2str i =
+  match i with
+    Add (r1,r2,r3) -> "add "^(reg2str r1)^", "^(reg2str r2)^", "^(reg2str r3)^"\n"
+  | Beq (r1,r2,imm) -> "beq "^(reg2str r1)^", "^(reg2str r2)^", "^(Int32.to_string imm)^"\n"
+  | Jr (r) -> "jr "^(reg2str r)^"\n"
+  | Jal (imm) -> "jal "^(Int32.to_string imm)^"\n"
+  | Li (r,imm) -> "li "^(reg2str r)^", "^(Int32.to_string imm)^"\n"
+  | Lui (r,imm) -> "lui "^(reg2str r)^", "^(Int32.to_string imm)^"\n"
+  | Ori (r1,r2,imm) -> "ori "^(reg2str r1)^", "^(reg2str r2)^", "^(Int32.to_string imm)^"\n"
+  | Lw (r1,r2,imm) -> "lw "^(reg2str r1)^", "^(Int32.to_string imm)^"("^(reg2str r2)^")\n"
+  | Sw (r1,r2,imm) -> "sw "^(reg2str r1)^", "^(Int32.to_string imm)^"("^(reg2str r2)^")\n"
+
 (* This shifts the current bits to the left by length and adds value to it *)
 let push (onto : int32) (length : int) (value : int32) : int32 = 
   Int32.logor (Int32.shift_left onto length) value 
@@ -137,7 +149,21 @@ let word2inst (word: int32) : inst =
   | _ -> raise (Failure "Instruction not found/implemented")
 
 (* TODO test*)
-
+let _ = 
+  let insts = [
+  Add(R0,R1,R2);
+  Beq(R3,R4,0x5678l);
+  Jr(R5);
+  Jal(0xABCDEFl);
+  Lui(R6,0xFEDCl);
+  Ori(R7,R8,0x1020l);
+  Lw(R18,R19,0x4321l);
+  Sw(R23,R26,0x8765l)] in
+  List.iter (fun i -> 
+    let word = List.hd (inst2word i) in
+    print_string (inst2str i);
+    print_string (Int32.to_string word);
+    assert ( word2inst word = i ) ) insts
 
 (* TODO test *) (* Adds an encoding to memory *)
 let mem_update_word (a : int32) (word : int32) (m : memory) : memory =
@@ -225,8 +251,8 @@ let run_inst (i : inst) (s: state) : state = (* TODO *)
 
 (* Testing memory word functions *)
 let _ =
-  let addr = 0x0f0f0f0fl in
-  let word = 0xf0f0f0f0l in
+  let addr = 0x01234567l in
+  let word = 0x89ABCDEFl in
   let m = mem_update_word addr word empty_mem in
   assert ( mem_lookup_word addr m = word )
 
