@@ -21,10 +21,29 @@ let cr='\013'
 let nl='\010'
 let eol=(cr nl|nl|cr)
 let ws=('\012'|'\t'|' ')*
-let digit=['0'-'9'] 
+let digit=['0'-'9']
+let lc_alpha=['a'-'z']
+let uc_alpha=['A'-'Z']
+let id=lc_alpha (lc_alpha uc_alpha digit)*
 
 (* rules section *)
 rule lexer = parse
 | eol { incr_lineno lexbuf; lexer lexbuf } 
 | ws+ { lexer lexbuf }
 | digit+ { INT(int_of_string(Lexing.lexeme lexbuf)) } 
+| eof { EOF }
+| ";" { SEMI }
+| "return" { RETURN }
+| "+" { PLUS }
+| "-" { MINUS }
+| "*" { STAR }
+| "/" { SLASH }
+| "(*" { comment lexbuf }
+| "(" { LPAREN }
+| ")" { RPAREN }
+| "==" { EQUAL }
+| "!=" { NEQUAL }
+
+and comment = parse 
+| "*)" { lexer lexbuf }
+| _ { comment lexbuf }

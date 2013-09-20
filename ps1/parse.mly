@@ -32,6 +32,16 @@ let parse_error s =
  */
 %token <int> INT 
 %token EOF
+%token SEMI
+%token RETURN
+%token PLUS
+%token MINUS
+%token STAR
+%token SLASH
+%token LPAREN
+%token RPAREN
+%token EQUAL
+%token NEQUAL
 
 /* Here's where the real grammar starts -- you'll need to add 
  * more rules here... Do not remove the 2%'s!! */
