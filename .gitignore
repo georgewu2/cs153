@@ -1,7 +1,6 @@
 *.cmi
 *.cmo
 *.tmp
-ps0
 parse.ml
 parse.mli 
 lex.ml
