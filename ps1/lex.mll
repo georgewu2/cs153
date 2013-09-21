@@ -38,12 +38,12 @@ rule lexer = parse
 | "-" { MINUS }
 | "*" { STAR }
 | "/" { SLASH }
-| "(*" { comment lexbuf }
+| "/*" { comment lexbuf }
 | "(" { LPAREN }
 | ")" { RPAREN }
 | "==" { EQUAL }
 | "!=" { NEQUAL }
 
 and comment = parse 
-| "*)" { lexer lexbuf }
+| "*/" { lexer lexbuf }
 | _ { comment lexbuf }
