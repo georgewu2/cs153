@@ -34,14 +34,16 @@ let parse_error s =
 %token EOF
 %token SEMI
 %token RETURN
-%token PLUS
-%token MINUS
+%token PLUS MINUS
 %token STAR
 %token SLASH
 %token LPAREN
 %token RPAREN
 %token EQUAL
 %token NEQUAL
+
+%left PLUS MINUS
+%left STAR SLASH
 
 /* Here's where the real grammar starts -- you'll need to add 
  * more rules here... Do not remove the 2%'s!! */
@@ -52,3 +54,23 @@ program:
 
 stmt :
   /* empty */ { (Ast.skip, 0) } 
+  | rstmt { ($1, rhs 1) }
+
+rstmt :
+  | RETURN exp SEMI { Return($2) }
+
+exp :
+  | rexp { ($1, rhs 1) }
+
+rexp :
+  | INT { Int($1) }
+  | LPAREN rexp RPAREN { $2 }
+  | exp binop exp { Binop($1, $2, $3) }
+
+binop :
+  | PLUS { Plus }
+  | MINUS { Minus }
+  | STAR { Times }
+  | SLASH { Div }
+  | EQUAL { Eq }
+  | NEQUAL { Neq }

@@ -30,11 +30,11 @@ let id=lc_alpha (lc_alpha uc_alpha digit)*
 rule lexer = parse
 | eol { incr_lineno lexbuf; lexer lexbuf } 
 | ws+ { lexer lexbuf }
-| digit+ { INT(int_of_string(Lexing.lexeme lexbuf)) } 
+| digit+ { Printf.printf "%d" (int_of_string(Lexing.lexeme lexbuf)); INT(int_of_string(Lexing.lexeme lexbuf)) } 
 | eof { EOF }
 | ";" { SEMI }
-| "return" { RETURN }
-| "+" { PLUS }
+| "return" { print_string("RETURN"); RETURN }
+| "+" { print_string("PLUS"); PLUS }
 | "-" { MINUS }
 | "*" { STAR }
 | "/" { SLASH }

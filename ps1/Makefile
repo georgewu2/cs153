@@ -29,7 +29,7 @@ toplevel: utility com
 	$(TOPLEVEL) -o ps1combtoplevel ast.cmo eval.cmo explode.cmo lcombinators.cmo comblexer.cmo combparser.cmo 
 
 yacc: com
-	ocamlyacc parse.mly
+	ocamlyacc -v parse.mly
 	$(COMPILER) -c parse.mli
 	$(COMPILER) -c parse.ml
 	ocamllex lex.mll
