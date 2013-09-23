@@ -43,6 +43,10 @@ rule lexer = parse
 | ")" { RPAREN }
 | "==" { EQUAL }
 | "!=" { NEQUAL }
+| "<" { LT }
+| "<=" { LTE }
+| ">" { GT }
+| ">=" { GTE }
 
 and comment = parse 
 | "*/" { lexer lexbuf }

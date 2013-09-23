@@ -22,6 +22,9 @@ let parse_error s =
  */
 %type <Ast.program> program
 %type <Ast.stmt> stmt
+%type <Ast.rstmt> rstmt
+%type <Ast.exp> exp
+%type <Ast.rexp> rexp
 
 /* The %token directive gives a definition of all of the terminals
  * (i.e., tokens) in the grammar. This will be used to generate the
@@ -35,15 +38,13 @@ let parse_error s =
 %token SEMI
 %token RETURN
 %token PLUS MINUS
-%token STAR
-%token SLASH
-%token LPAREN
-%token RPAREN
-%token EQUAL
-%token NEQUAL
+%token STAR SLASH
+%token LPAREN RPAREN
+%token EQUAL NEQUAL LT LTE GT GTE
 
 %left PLUS MINUS
 %left STAR SLASH
+%left UMINUS
 
 /* Here's where the real grammar starts -- you'll need to add 
  * more rules here... Do not remove the 2%'s!! */
@@ -65,12 +66,14 @@ exp :
 rexp :
   | INT { Int($1) }
   | LPAREN rexp RPAREN { $2 }
-  | exp binop exp { Binop($1, $2, $3) }
-
-binop :
-  | PLUS { Plus }
-  | MINUS { Minus }
-  | STAR { Times }
-  | SLASH { Div }
-  | EQUAL { Eq }
-  | NEQUAL { Neq }
+  | exp EQUAL exp { Binop($1, Eq, $3) }
+  | exp NEQUAL exp { Binop($1, Neq, $3) }
+  | exp LT exp { Binop($1, Lt, $3) }
+  | exp LTE exp { Binop($1, Lte, $3) }
+  | exp GT exp { Binop($1, Gt, $3) }
+  | exp GTE exp { Binop($1, Gte, $3) }
+  | exp PLUS exp { Binop($1, Plus, $3) }
+  | exp MINUS exp { Binop($1, Minus, $3) }
+  | MINUS exp %prec UMINUS { Binop((Int(0), rhs 1), Minus, $2) }
+  | exp STAR exp { Binop($1, Times, $3) }
+  | exp SLASH exp { Binop($1, Div, $3) }
