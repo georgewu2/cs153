@@ -22,15 +22,15 @@ let nl='\010'
 let eol=(cr nl|nl|cr)
 let ws=('\012'|'\t'|' ')*
 let digit=['0'-'9']
-let lc_alpha=['a'-'z']
-let uc_alpha=['A'-'Z']
-let id=lc_alpha (lc_alpha uc_alpha digit)*
+let alpha=['a'-'z''A'-'Z']
+let id=alpha (alpha|digit)*
 
 (* rules section *)
 rule lexer = parse
 | eol { incr_lineno lexbuf; lexer lexbuf } 
 | ws+ { lexer lexbuf }
 | digit+ { Printf.printf "%d" (int_of_string(Lexing.lexeme lexbuf)); INT(int_of_string(Lexing.lexeme lexbuf)) } 
+| id { Printf.printf "%s" (Lexing.lexeme lexbuf); VAR(Lexing.lexeme lexbuf) }
 | eof { EOF }
 | ";" { SEMI }
 | "return" { print_string("RETURN"); RETURN }

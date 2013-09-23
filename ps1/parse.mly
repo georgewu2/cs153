@@ -34,6 +34,7 @@ let parse_error s =
  * You will need to augment this with your own tokens...
  */
 %token <int> INT 
+%token <string> VAR
 %token EOF
 %token SEMI
 %token RETURN
