@@ -41,12 +41,17 @@ rule lexer = parse
 | "/*" { comment lexbuf }
 | "(" { LPAREN }
 | ")" { RPAREN }
+| "{" { LBRACE }
+| "}" { RBRACE }
 | "==" { EQUAL }
 | "!=" { NEQUAL }
 | "<" { LT }
 | "<=" { LTE }
 | ">" { GT }
 | ">=" { GTE }
+| "!" { NOT }
+| "&&" { AND }
+| "||" { OR }
 
 and comment = parse 
 | "*/" { lexer lexbuf }

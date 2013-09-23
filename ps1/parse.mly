@@ -40,12 +40,15 @@ let parse_error s =
 %token RETURN
 %token PLUS MINUS
 %token STAR SLASH
-%token LPAREN RPAREN
+%token LPAREN RPAREN LBRACE RBRACE
 %token EQUAL NEQUAL LT LTE GT GTE
+%token NOT AND OR
 
 %left PLUS MINUS
 %left STAR SLASH
 %left UMINUS
+%left AND OR
+%left NOT
 
 /* Here's where the real grammar starts -- you'll need to add 
  * more rules here... Do not remove the 2%'s!! */
@@ -56,10 +59,12 @@ program:
 
 stmt :
   /* empty */ { (Ast.skip, 0) } 
+  | LBRACE stmt RBRACE { $2 }
   | rstmt { ($1, rhs 1) }
 
 rstmt :
   | RETURN exp SEMI { Return($2) }
+  | stmt SEMI stmt { Seq($1,$3) }
 
 exp :
   | rexp { ($1, rhs 1) }
@@ -67,6 +72,9 @@ exp :
 rexp :
   | INT { Int($1) }
   | LPAREN rexp RPAREN { $2 }
+  | NOT exp { Not($2) }
+  | exp AND exp { And($1,$3) }
+  | exp OR exp { Or($1,$3) }
   | exp EQUAL exp { Binop($1, Eq, $3) }
   | exp NEQUAL exp { Binop($1, Neq, $3) }
   | exp LT exp { Binop($1, Lt, $3) }
