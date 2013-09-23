@@ -43,6 +43,7 @@ let parse_error s =
 %token LPAREN RPAREN LBRACE RBRACE
 %token EQUAL NEQUAL LT LTE GT GTE
 %token NOT AND OR
+%token ASSIGN
 
 %left PLUS MINUS
 %left STAR SLASH
@@ -63,16 +64,22 @@ stmt :
   | rstmt { ($1, rhs 1) }
 
 rstmt :
-  | RETURN exp SEMI { Return($2) }
+  | exp { Exp($1) }
   | stmt SEMI stmt { Seq($1,$3) }
+  | RETURN exp SEMI { Return($2) }
 
 exp :
   | rexp { ($1, rhs 1) }
 
 rexp :
   | INT { Int($1) }
+  | VAR { Var($1) }
   | LPAREN rexp RPAREN { $2 }
+  | VAR ASSIGN exp { Assign($1, $3) }
   | NOT exp { Not($2) }
+  | binop { $1 }
+
+binop :
   | exp AND exp { And($1,$3) }
   | exp OR exp { Or($1,$3) }
   | exp EQUAL exp { Binop($1, Eq, $3) }

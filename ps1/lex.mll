@@ -23,14 +23,13 @@ let eol=(cr nl|nl|cr)
 let ws=('\012'|'\t'|' ')*
 let digit=['0'-'9']
 let alpha=['a'-'z''A'-'Z']
-let id=alpha (alpha|digit)*
+let id=alpha (alpha|digit|'_')*
 
 (* rules section *)
 rule lexer = parse
 | eol { incr_lineno lexbuf; lexer lexbuf } 
 | ws+ { lexer lexbuf }
 | digit+ { Printf.printf "%d" (int_of_string(Lexing.lexeme lexbuf)); INT(int_of_string(Lexing.lexeme lexbuf)) } 
-| id { Printf.printf "%s" (Lexing.lexeme lexbuf); VAR(Lexing.lexeme lexbuf) }
 | eof { EOF }
 | ";" { SEMI }
 | "return" { print_string("RETURN"); RETURN }
@@ -52,6 +51,8 @@ rule lexer = parse
 | "!" { NOT }
 | "&&" { AND }
 | "||" { OR }
+| "=" { print_string("assign"); ASSIGN }
+| id { Printf.printf "%s" (Lexing.lexeme lexbuf); VAR(Lexing.lexeme lexbuf) }
 
 and comment = parse 
 | "*/" { lexer lexbuf }
