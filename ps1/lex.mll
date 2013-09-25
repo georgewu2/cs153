@@ -29,11 +29,15 @@ let id=alpha (alpha|digit|'_')*
 rule lexer = parse
 | eol { incr_lineno lexbuf; lexer lexbuf } 
 | ws+ { lexer lexbuf }
-| digit+ { Printf.printf "%d" (int_of_string(Lexing.lexeme lexbuf)); INT(int_of_string(Lexing.lexeme lexbuf)) } 
+| digit+ { Printf.printf "%d " (int_of_string(Lexing.lexeme lexbuf)); INT(int_of_string(Lexing.lexeme lexbuf)) } 
 | eof { EOF }
-| ";" { SEMI }
-| "return" { print_string("RETURN"); RETURN }
-| "+" { print_string("PLUS"); PLUS }
+| ";" { print_string("; "); SEMI }
+| "return" { print_string("RETURN "); RETURN }
+| "if" { IF }
+| "else" { ELSE }
+| "while" { print_string("while "); WHILE }
+| "for" { FOR }
+| "+" { print_string("+ "); PLUS }
 | "-" { MINUS }
 | "*" { STAR }
 | "/" { SLASH }
@@ -51,8 +55,8 @@ rule lexer = parse
 | "!" { NOT }
 | "&&" { AND }
 | "||" { OR }
-| "=" { print_string("assign"); ASSIGN }
-| id { Printf.printf "%s" (Lexing.lexeme lexbuf); VAR(Lexing.lexeme lexbuf) }
+| "=" { print_string("= "); ASSIGN }
+| id { Printf.printf "%s " (Lexing.lexeme lexbuf); VAR(Lexing.lexeme lexbuf) }
 
 and comment = parse 
 | "*/" { lexer lexbuf }
