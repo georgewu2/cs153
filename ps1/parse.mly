@@ -35,16 +35,16 @@ let parse_error s =
  */
 %token <int> INT 
 %token <string> VAR
+
 %token EOF
-%token SEMI
+%token ASSIGN SEMI
 %token RETURN IF ELSE WHILE FOR
-%token PLUS MINUS
-%token STAR SLASH
+%token PLUS MINUS STAR SLASH
 %token LPAREN RPAREN LBRACE RBRACE
 %token EQUAL NEQUAL LT LTE GT GTE
 %token NOT AND OR
-%token ASSIGN
 
+%left ASSIGN
 %left AND OR
 %left NOT
 %left EQUAL NEQUAL LT LTE GT GTE
@@ -57,33 +57,35 @@ let parse_error s =
 %%
 
 program:
-  stmt EOF { $1 }
+  | stmts EOF { $1 }
+
+stmts :
+  /* empty */ { (Ast.skip, 0) } 
+  | stmt stmts { (Seq($1,$2), rhs 2) }
 
 stmt :
-  /* empty */ { (Ast.skip, 0) } 
-  | rstmt stmt { (Seq(($1, rhs 1),$2), rhs 2) }
+  | LBRACE stmts RBRACE { $2 }
+  | rstmt { ($1, rhs 1) }
 
 rstmt :
-  | exp SEMI { Exp($1) }
-  | LBRACE rstmt RBRACE { $2 }
   | IF LPAREN exp RPAREN stmt ELSE stmt { If ($3, $5, $7) }
   | WHILE LPAREN exp RPAREN stmt { While($3, $5) }
   | FOR LPAREN exp SEMI exp SEMI exp RPAREN stmt { For ($3, $5, $7, $9) }
   | RETURN exp SEMI { Return($2) }
+  | exp SEMI { Exp($1) }
 
 exp :
+  | LPAREN exp RPAREN { $2 }
   | rexp { ($1, rhs 1) }
 
 rexp :
-  | INT { Int($1) }
-  | VAR { Var($1) }
-  | LPAREN rexp RPAREN { $2 }
   | binop { $1 }
-  | NOT exp { Not($2) }
   | exp AND exp { And($1,$3) }
   | exp OR exp { Or($1,$3) }
   | VAR ASSIGN exp { Assign($1, $3) }
-
+  | NOT exp { Not($2) }
+  | VAR { Var($1) }
+  | INT { Int($1) }
 
 binop :
   | exp EQUAL exp { Binop($1, Eq, $3) }
