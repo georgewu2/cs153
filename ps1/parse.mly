@@ -44,8 +44,11 @@ let parse_error s =
 %token EQUAL NEQUAL LT LTE GT GTE
 %token NOT AND OR
 
+%nonassoc IF_NO_ELSE
+%nonassoc ELSE
+
 %left ASSIGN
-%left AND OR
+%right AND OR
 %left NOT
 %left EQUAL NEQUAL LT LTE GT GTE
 %left PLUS MINUS
@@ -69,6 +72,7 @@ stmt :
 
 rstmt :
   | IF LPAREN exp RPAREN stmt ELSE stmt { If ($3, $5, $7) }
+  | IF LPAREN exp RPAREN stmt %prec IF_NO_ELSE { If ($3, $5, (Ast.skip,0)) }
   | WHILE LPAREN exp RPAREN stmt { While($3, $5) }
   | FOR LPAREN exp SEMI exp SEMI exp RPAREN stmt { For ($3, $5, $7, $9) }
   | RETURN exp SEMI { Return($2) }
@@ -79,9 +83,9 @@ exp :
   | rexp { ($1, rhs 1) }
 
 rexp :
-  | binop { $1 }
   | exp AND exp { And($1,$3) }
   | exp OR exp { Or($1,$3) }
+  | binop { $1 }
   | VAR ASSIGN exp { Assign($1, $3) }
   | NOT exp { Not($2) }
   | VAR { Var($1) }

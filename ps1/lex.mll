@@ -33,7 +33,7 @@ rule lexer = parse
 | eof { EOF }
 | ";" { print_string("; "); SEMI }
 | "return" { print_string("RETURN "); RETURN }
-| "if" { IF }
+| "if" { print_string("IF "); IF }
 | "else" { ELSE }
 | "while" { print_string("while "); WHILE }
 | "for" { FOR }
@@ -42,19 +42,19 @@ rule lexer = parse
 | "*" { STAR }
 | "/" { SLASH }
 | "/*" { comment lexbuf }
-| "(" { LPAREN }
-| ")" { RPAREN }
-| "{" { LBRACE }
-| "}" { RBRACE }
+| "(" { print_string("( "); LPAREN }
+| ")" { print_string(") "); RPAREN }
+| "{" { print_string("{ "); LBRACE }
+| "}" { print_string("} "); RBRACE }
 | "==" { EQUAL }
 | "!=" { NEQUAL }
-| "<" { LT }
+| "<" { print_string("< "); LT }
 | "<=" { LTE }
-| ">" { GT }
+| ">" { print_string("> "); GT }
 | ">=" { GTE }
 | "!" { NOT }
 | "&&" { AND }
-| "||" { OR }
+| "||" { print_string("|| "); OR }
 | "=" { print_string("= "); ASSIGN }
 | id { Printf.printf "%s " (Lexing.lexeme lexbuf); VAR(Lexing.lexeme lexbuf) }
 
