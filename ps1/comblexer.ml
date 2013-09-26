@@ -5,6 +5,7 @@ open Lcombinators.CharParsing
 type token = 
     INT of int 
   | PLUS | MINUS | STAR | SLASH
+  | NOT
   | LPAREN | RPAREN
   | EQUAL | NEQ | GTE | LTE | GT | LT
   | WHITESPACE | COMMENT 
@@ -35,12 +36,13 @@ let rec tokenize(cs:char list) : token list =
   let lte_parser = const_map LTE (str "<=") in
   let gt_parser = const_map GT (c '>') in
   let lt_parser = const_map LT (c '<') in
+  let not_parser = const_map NOT (c '!') in
   let return_parser = const_map RETURN (str "return") in
   let semi_parser = const_map SEMI (c ';') in
   let all_tokens = [int_parser; ws_parser; comment_parser; 
     plus_parser; minus_parser; star_parser; slash_parser;
     lparen_parser; rparen_parser; equal_parser; neq_parser;
-    gte_parser; lte_parser; gt_parser; lt_parser; 
+    gte_parser; lte_parser; gt_parser; lt_parser; not_parser; 
     return_parser; semi_parser] in
   let eof_parser = map (fun _ -> EOF) eof in
   let p = seq (star (alts all_tokens), eof_parser) in
