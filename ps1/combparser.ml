@@ -12,34 +12,32 @@ let rec make_exp_parser (():unit) : (token, exp) parser =
     lazy_seq (lazy (make_exp_parser ()), lazy (satisfy (fun t -> t == RPAREN)))) in 
   let sub_exp_parser = map (fun (_, (e, _)) -> e) sub_parser in
   let first_parser = alt (int_parser, sub_exp_parser) in
-  let rest_parser = seq (first_parser, make_bexp_parser ()) in
+  let rest_parser = seq (first_parser, make_bexp_rest ()) in
   let binop_parser = map (fun (e1, (op, e2)) -> (Binop (e1, op, e2), dummy_pos)) rest_parser in
   alts [binop_parser; first_parser]
-(*and make_plus_minus (():unit) : (token, (binop * exp)) parser = 
-  let plus_minus_exp_parser = alt (seq (make_times_div (), lazy_seq(lazy (satisfy (fun t -> t == PLUS)), 
-    lazy (make_plus_minus ()))), make_times_div ()) in
-  lazy_seq(lazy plus_minus_exp_parser, lazy (make_exp_parser()))
-and make_times_div (():unit) : (token, (binop * exp)) parser = 
-  let times_div_exp_parser = alt (seq (first_parser, lazy_seq(lazy (satisfy (fun t -> t == STAR)),
-    lazy (times_div_exp_parser ()))), first_parser) in
-  lazy_seq(lazy times_div_exp_parser, lazy (make_exp_parser ()))*)
-and make_bexp_parser (():unit) : (token, (binop * exp)) parser =
-  let stuff = make_bexp_rest in
-  let stuff2 = map (fun (e1, (op, e2)) -> (Binop (e1, op, e2), dummy_pos)) in
-  alts [make_exp_parser(); stuff2]
-and make_bexp_rest = 
-  let exp_parser = satisfy_opt (function STAR -> Some Times | SLASH -> Some Div | _ -> None) in
-  lazy_seq(lazy exp_parser, lazy make_bexp_parser)
-
-  (*let binop_comp_parser = satisfysfy_opt (function 
-    EQUAL -> Some Eq | NEQ -> Some Neq | GTE -> Some Gte | LTE -> Some Lte | GT -> Some Gt |
-    LT -> Some Lt | _ -> None) in
-  lazy_seq (lazy binop_comp_parser, lazy (make_exp_parser ()))
-
-    let binop_op_parser = satisfy_opt (function 
+and make_bexp_parser (():unit) : (token, exp) parser = 
+  let rest_parser = seq (make_exp_parser (), make_bexp_rest ()) in
+  let bexp_parser = map (fun (e1, (op, e2)) -> (Binop (e1, op, e2), dummy_pos)) rest_parser in
+  alts [make_exp_parser (); bexp_parser]
+and make_bexp_rest (():unit) : (token, (binop * exp)) parser =
+  let times_div_op_parser = satisfy_opt (function 
     STAR -> Some Times | SLASH -> Some Div | _ -> None) in
-  let binop_plus_parser = satisfy_opt (function
-    PLUS -> Some Plus | MINUS -> Some Minus | _ -> None) in*)
+  lazy_seq (lazy times_div_op_parser, lazy (make_bexp_parser ()))
+
+and make_cexp_parser (():unit) : (token, exp) parser = 
+  let rest_parser = seq (make_bexp_parser (), make_cexp_rest ()) in
+  let cexp_parser = map (fun (e1, (op, e2)) -> (Binop (e1, op, e2), dummy_pos)) rest_parser in
+  alts [make_bexp_parser (); cexp_parser]
+and make_cexp_rest (():unit) : (token, (binop * exp)) parser = 
+  let binop_op_parser = satisfy_opt (function
+    PLUS -> Some Plus | MINUS -> Some Minus | _ -> None) in
+  lazy_seq (lazy binop_op_parser, lazy (make_cexp_parser ()))
+
+(*and make_binop_rest (():unit) : (token, (binop * exp)) parser =
+  let binop_op_parser = satisfy_opt (function 
+    PLUS -> Some Plus | MINUS -> Some Minus | STAR -> Some Times | SLASH -> Some Div | _ -> None) in
+  lazy_seq (lazy binop_op_parser, lazy (make_exp_parser ()))*)
+
 
 let rec make_stmt_parser (():unit) : (token, stmt) parser =
   let return_parser = seq (satisfy (fun t -> t == RETURN), lazy_seq (lazy (make_exp_parser ()), 
@@ -54,6 +52,7 @@ let parse(ts:token list) : program =
    | Some stmt -> stmt
    | None -> failwith "parse error"
 
+(*)
 let parse_string s =
   let cs = Explode.explode s in
   let tokens = tokenize cs in
@@ -62,4 +61,4 @@ let parse_string s =
 
 let test = parse_string "return 4 * (1 == 2) + 2 * (2 == 2) + 1 * (3 == 2);"
 let test2 = parse_string "return 2 + 3 * 4;"
-let test3 = parse_string "return 2 * 3 + 4;"
+let test3 = parse_string "return 2 * 3 + 4;"*)
