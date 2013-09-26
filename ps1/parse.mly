@@ -41,19 +41,22 @@ let parse_error s =
 %token RETURN IF ELSE WHILE FOR
 %token PLUS MINUS STAR SLASH
 %token LPAREN RPAREN LBRACE RBRACE
-%token EQUAL NEQUAL LT LTE GT GTE
+%token EQUAL NEQ LT LTE GT GTE
 %token NOT AND OR
 
+/* Solves the dangling else problem */
 %nonassoc IF_NO_ELSE
 %nonassoc ELSE
 
 %left ASSIGN
-%right AND OR
-%left NOT
-%left EQUAL NEQUAL LT LTE GT GTE
+%left OR
+%left AND 
+%left EQUAL NEQ 
+%left LT LTE GT GTE
 %left PLUS MINUS
 %left STAR SLASH
-%left UMINUS
+%right NOT
+%right UMINUS
 
 /* Here's where the real grammar starts -- you'll need to add 
  * more rules here... Do not remove the 2%'s!! */
@@ -93,7 +96,7 @@ rexp :
 
 binop :
   | exp EQUAL exp { Binop($1, Eq, $3) }
-  | exp NEQUAL exp { Binop($1, Neq, $3) }
+  | exp NEQ exp { Binop($1, Neq, $3) }
   | exp LT exp { Binop($1, Lt, $3) }
   | exp LTE exp { Binop($1, Lte, $3) }
   | exp GT exp { Binop($1, Gt, $3) }

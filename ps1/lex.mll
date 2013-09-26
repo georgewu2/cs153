@@ -47,7 +47,7 @@ rule lexer = parse
 | "{" { print_string("{ "); LBRACE }
 | "}" { print_string("} "); RBRACE }
 | "==" { EQUAL }
-| "!=" { NEQUAL }
+| "!=" { NEQ }
 | "<" { print_string("< "); LT }
 | "<=" { LTE }
 | ">" { print_string("> "); GT }
