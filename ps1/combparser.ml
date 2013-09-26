@@ -12,13 +12,7 @@ let rec make_exp_parser (():unit) : (token, exp) parser =
     lazy_seq (lazy (make_exp_parser ()), lazy (satisfy (fun t -> t == RPAREN)))) in 
   let sub_exp_parser = map (fun (_, (e, _)) -> e) sub_parser in
   let first_parser = alt (int_parser, sub_exp_parser) in
-  let a_binop_parser = satisfy_opt (function 
-    STAR -> Some Times | SLASH -> Some Div | _ -> None) in
-  let b_exp_parser = seq (first_parser, lazy_seq (lazy a_binop_parser, lazy first_parser)) in
-  let b_binop_parser = satisfy_opt (function
-    PLUS -> Some Plus | MINUS -> Some Minus | _ -> None) in
-  let c_exp_parser = seq (b_exp_parser, lazy_seq (lazy b_binop_parser, lazy b_exp_parser)) in
-  let rest_parser = seq (first_parser, c_exp_parser) in
+  let rest_parser = seq (first_parser, make_bexp_parser ()) in
   let binop_parser = map (fun (e1, (op, e2)) -> (Binop (e1, op, e2), dummy_pos)) rest_parser in
   alts [binop_parser; first_parser]
 (*and make_plus_minus (():unit) : (token, (binop * exp)) parser = 
@@ -29,9 +23,15 @@ and make_times_div (():unit) : (token, (binop * exp)) parser =
   let times_div_exp_parser = alt (seq (first_parser, lazy_seq(lazy (satisfy (fun t -> t == STAR)),
     lazy (times_div_exp_parser ()))), first_parser) in
   lazy_seq(lazy times_div_exp_parser, lazy (make_exp_parser ()))*)
-(*and make_binop_rest (():unit) : (token, (binop * exp)) parser =*)
+and make_bexp_parser (():unit) : (token, (binop * exp)) parser =
+  let stuff = make_bexp_rest in
+  let stuff2 = map (fun (e1, (op, e2)) -> (Binop (e1, op, e2), dummy_pos)) in
+  alts [make_exp_parser(); stuff2]
+and make_bexp_rest = 
+  let exp_parser = satisfy_opt (function STAR -> Some Times | SLASH -> Some Div | _ -> None) in
+  lazy_seq(lazy exp_parser, lazy make_bexp_parser)
 
-  (*let binop_comp_parser = satisfy_opt (function 
+  (*let binop_comp_parser = satisfysfy_opt (function 
     EQUAL -> Some Eq | NEQ -> Some Neq | GTE -> Some Gte | LTE -> Some Lte | GT -> Some Gt |
     LT -> Some Lt | _ -> None) in
   lazy_seq (lazy binop_comp_parser, lazy (make_exp_parser ()))
