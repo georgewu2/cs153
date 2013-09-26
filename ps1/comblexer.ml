@@ -43,7 +43,7 @@ let rec tokenize(cs:char list) : token list =
     List.map (function (code, t) -> const_map t code) c_pairs in
 
   let all_tokens = [ws_parser; comment_parser; 
-  int_parser; (alts c_parser); (alts str_parser); id_parser] in
+  int_parser; (alts str_parser); (alts c_parser); id_parser] in
   let eof_parser = map (fun _ -> EOF) eof in
   let p = seq (star (alts all_tokens), eof_parser) in
   match run (p cs) with
