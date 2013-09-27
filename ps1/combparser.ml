@@ -87,9 +87,6 @@ and make_gexp_rest (():unit) : (token, (token * exp)) parser =
   let op_parser = satisfy (fun t -> t == ASSIGN) in
   lazy_seq (lazy op_parser, lazy (make_gexp_parser ()))
 
-
-
-
 let rec make_stmts_parser (():unit) : (token, stmt) parser = 
   let seq_parser = lazy_seq(lazy (make_stmt_parser ()), lazy (make_stmts_parser ())) in
   let seq_stmt_parser = map (fun (a,b) -> ((Seq (a,b), dummy_pos))) seq_parser in
@@ -133,14 +130,9 @@ and make_if_parser (():unit) : (token, stmt) parser =
   let rest_parser = seq(if_parser, lazy_seq(lazy (make_gexp_parser ()), lazy (make_stmt_parser ()))) in
   map (fun (_, (e, s1)) -> If(e, s1, (Ast.skip, dummy_pos)), dummy_pos) rest_parser
 (* Equivalents for c statements*)
-and make_cstmts_parser (():unit) : (token, stmt) parser = 
-  let seq_parser = lazy_seq(lazy (make_cstmt_parser ()), lazy (make_cstmts_parser ())) in
-  let seq_stmt_parser = map (fun (a,b) -> ((Seq (a,b), dummy_pos))) seq_parser in
-  let empty_parser = always (Ast.skip, dummy_pos) in 
-  alts [seq_stmt_parser; empty_parser]
 and make_cstmt_parser (():unit) : (token, stmt) parser =
   let sub_parser = seq (satisfy (fun t -> t == LBRACE), 
-    lazy_seq (lazy (make_cstmts_parser ()), lazy (satisfy (fun t -> t == RBRACE)))) in 
+    lazy_seq (lazy (make_stmts_parser ()), lazy (satisfy (fun t -> t == RBRACE)))) in 
   let sub_stmt_parser = map (fun (_, (s, _)) -> s) sub_parser in
   let return_parser = seq (satisfy (fun t -> t == RETURN), lazy_seq (lazy (make_gexp_parser ()), 
     lazy (satisfy (fun t -> t == SEMI)))) in
@@ -149,42 +141,9 @@ and make_cstmt_parser (():unit) : (token, stmt) parser =
   let exp_stmt_parser = map (fun (e, _) -> (Exp e, dummy_pos)) exp_parser  in
   alts [sub_stmt_parser; return_stmt_parser; exp_stmt_parser; (make_if_else_parser ()); 
     (make_while_parser ()); (make_for_parser ())]
-and make_cwhile_parser ((): unit) : (token, stmt) parser = 
-  let while_parser = satisfy (fun t -> t == WHILE) in
-  let all_parser = seq(while_parser, lazy_seq(lazy (make_gexp_parser ()), lazy (make_cstmt_parser ()))) in
-  map (fun (_, (e, s)) -> ((While (e,s)), dummy_pos)) all_parser
-and make_cfor_parser ((): unit) : (token, stmt) parser = 
-  let rest_parser = lazy_seq (lazy (satisfy (fun t -> t == RPAREN)), lazy (make_cstmt_parser ())) in
-  let rest2_parser = lazy_seq (lazy (make_gexp_parser ()), lazy (rest_parser)) in
-  let rest3_parser = lazy_seq (lazy (satisfy (fun t -> t == SEMI)), lazy (rest2_parser)) in
-  let rest4_parser = lazy_seq (lazy (make_gexp_parser ()), lazy (rest3_parser)) in
-  let rest5_parser = lazy_seq (lazy (satisfy (fun t -> t == SEMI)), lazy (rest4_parser)) in
-  let rest6_parser = lazy_seq (lazy (make_gexp_parser ()), lazy (rest5_parser)) in
-  let for_parser = seq (satisfy (fun t -> t == FOR), 
-    lazy_seq(lazy (satisfy (fun t -> t == LPAREN)), lazy rest6_parser)) in
-  map (fun (_, (_, (e1, (_, (e2, (_, (e3, (_, s)))))))) -> 
-    (For (e1, e2, e3, s), dummy_pos)) for_parser
-and make_cif_else_parser (():unit) : (token, stmt) parser = 
-  let if_parser = satisfy (fun t -> t == IF) in
-  let else_parser = lazy_seq(lazy (satisfy (fun t -> t == ELSE)), lazy(make_cstmt_parser ())) in
-  let rest_parser = lazy_seq(lazy (make_cstmt_parser ()), lazy else_parser) in
-  let rest2_parser = lazy_seq(lazy (make_gexp_parser ()), lazy rest_parser) in
-  let if_else_parser = seq (if_parser, rest2_parser) in
-  map (fun (_, (e, (s1,(_, s2)))) -> ((If (e, s1, s2)), dummy_pos)) if_else_parser
 
 let parse(ts:token list) : program = 
   let program_parser = make_stmts_parser () in
   match run (program_parser ts) with
    | Some stmt -> stmt
    | None -> failwith "parse error"
-
-(*
-let parse_string s =
-  let cs = Explode.explode s in
-  let tokens = tokenize cs in
-  let ast = parse tokens in
-  ast
-
-let test = parse_string "return 4 * (1 == 2) + 2 * (2 == 2) + 1 * (3 == 2);"
-let test2 = parse_string "return 2 + 3 * 4;"
-let test3 = parse_string "return 2 * 3 + 4;"*)
