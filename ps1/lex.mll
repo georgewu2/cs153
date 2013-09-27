@@ -29,34 +29,34 @@ let id=alpha (alpha|digit|'_')*
 rule lexer = parse
 | eol { incr_lineno lexbuf; lexer lexbuf } 
 | ws+ { lexer lexbuf }
-| digit+ { Printf.printf "%d " (int_of_string(Lexing.lexeme lexbuf)); INT(int_of_string(Lexing.lexeme lexbuf)) } 
+| digit+ { INT(int_of_string(Lexing.lexeme lexbuf)) } 
 | eof { EOF }
-| ";" { print_string("; "); SEMI }
-| "return" { print_string("RETURN "); RETURN }
-| "if" { print_string("IF "); IF }
+| ";" { SEMI }
+| "return" { RETURN }
+| "if" {  IF }
 | "else" { ELSE }
-| "while" { print_string("while "); WHILE }
+| "while" { WHILE }
 | "for" { FOR }
-| "+" { print_string("+ "); PLUS }
+| "+" { PLUS }
 | "-" { MINUS }
 | "*" { STAR }
 | "/" { SLASH }
 | "/*" { comment lexbuf }
-| "(" { print_string("( "); LPAREN }
-| ")" { print_string(") "); RPAREN }
-| "{" { print_string("{ "); LBRACE }
-| "}" { print_string("} "); RBRACE }
+| "(" { LPAREN }
+| ")" { RPAREN }
+| "{" { LBRACE }
+| "}" { RBRACE }
 | "==" { EQUAL }
 | "!=" { NEQ }
-| "<" { print_string("< "); LT }
+| "<" { LT }
 | "<=" { LTE }
-| ">" { print_string("> "); GT }
+| ">" { GT }
 | ">=" { GTE }
 | "!" { NOT }
 | "&&" { AND }
-| "||" { print_string("|| "); OR }
-| "=" { print_string("= "); ASSIGN }
-| id { Printf.printf "%s " (Lexing.lexeme lexbuf); VAR(Lexing.lexeme lexbuf) }
+| "||" {  OR }
+| "=" { ASSIGN }
+| id { VAR(Lexing.lexeme lexbuf) }
 
 and comment = parse 
 | "*/" { lexer lexbuf }
