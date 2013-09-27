@@ -8,10 +8,11 @@ let dummy_pos : pos = 0
 
 let rec make_exp_parser (():unit) : (token, exp) parser =
   let int_parser = satisfy_opt (function INT i -> Some (Int i, dummy_pos) | _ -> None) in
+  let var_parser = satisfy_opt (function VAR i -> Some (Var i, dummy_pos) | _ -> None) in
   let sub_parser = seq (satisfy (fun t -> t == LPAREN), 
-    lazy_seq (lazy (make_fexp_parser ()), lazy (satisfy (fun t -> t == RPAREN)))) in 
+    lazy_seq (lazy (make_gexp_parser ()), lazy (satisfy (fun t -> t == RPAREN)))) in 
   let sub_exp_parser = map (fun (_, (e, _)) -> e) sub_parser in
-  let first_parser = alt (int_parser, sub_exp_parser) in
+  let first_parser = alts [int_parser; var_parser; sub_exp_parser] in
   let rest_parser = seq (first_parser, make_dexp_rest ()) in
   let binop_parser = map (fun (e1, (op, e2)) -> (Binop (e1, op, e2), dummy_pos)) rest_parser in
   alts [binop_parser; first_parser]
@@ -77,6 +78,16 @@ and make_fexp_rest (():unit) : (token, (token * exp)) parser =
   let op_parser = satisfy (fun t -> t == OR) in
   lazy_seq (lazy op_parser, lazy (make_fexp_parser ()))
 
+and make_gexp_parser (():unit) : (token, exp) parser = 
+  let var_parser = satisfy_opt (function VAR i -> Some i | _ -> None) in
+  let rest_parser = seq (var_parser, make_gexp_rest ()) in
+  let gexp_parser = map (fun (v, (_, e)) -> (Assign (v, e), dummy_pos)) rest_parser in
+  alts [gexp_parser; make_fexp_parser ()]
+and make_gexp_rest (():unit) : (token, (token * exp)) parser = 
+  let op_parser = satisfy (fun t -> t == ASSIGN) in
+  lazy_seq (lazy op_parser, lazy (make_gexp_parser ()))
+
+
 
 (*and make_binop_rest (():unit) : (token, (binop * exp)) parser =
   let binop_op_parser = satisfy_opt (function 
@@ -85,11 +96,40 @@ and make_fexp_rest (():unit) : (token, (token * exp)) parser =
 
 
 let rec make_stmt_parser (():unit) : (token, stmt) parser =
-  let return_parser = seq (satisfy (fun t -> t == RETURN), lazy_seq (lazy (make_fexp_parser ()), 
+  let sub_parser = seq (satisfy (fun t -> t == LBRACE), 
+    lazy_seq (lazy (make_stmt_parser ()), lazy (satisfy (fun t -> t == RBRACE)))) in 
+  let sub_stmt_parser = map (fun (_, (s, _)) -> s) sub_parser in
+  let return_parser = seq (satisfy (fun t -> t == RETURN), lazy_seq (lazy (make_gexp_parser ()), 
     lazy (satisfy (fun t -> t == SEMI)))) in
   let return_stmt_parser = map (fun (_, (e, _)) -> ((Return e), dummy_pos)) return_parser in
-  let exp_stmt_parser = map (fun e -> (Exp e, dummy_pos)) (make_fexp_parser ()) in
-  alts [return_stmt_parser; exp_stmt_parser]
+  let exp_parser = seq (make_gexp_parser (), satisfy (fun t -> t == SEMI)) in
+  let exp_stmt_parser = map (fun (e, _) -> (Exp e, dummy_pos)) exp_parser  in
+  let seq_parser = lazy_seq(lazy (exp_stmt_parser), lazy (make_stmt_parser ())) in
+  let seq_stmt_parser = map (fun (a,b) -> ((Seq (a,b), dummy_pos))) seq_parser in
+  alts [sub_stmt_parser; seq_stmt_parser; return_stmt_parser; exp_stmt_parser;
+   (make_if_else_parser ()); (make_if_parser ()); (make_while_parser ())]
+and make_while_parser ((): unit) : (token, stmt) parser = 
+  let while_parser = satisfy (fun t -> t == WHILE) in
+  let all_parser = seq(while_parser, lazy_seq(lazy (make_gexp_parser ()), lazy (make_stmt_parser ()))) in
+  map (fun (_, (e, s)) -> ((While (e,s)), dummy_pos)) all_parser
+and make_if_else_parser (():unit) : (token, stmt) parser = 
+  let if_parser = satisfy (fun t -> t == IF) in
+  let else_parser = lazy_seq(lazy (satisfy (fun t -> t == ELSE)), lazy(make_stmt_parser ())) in
+  let rest_parser = lazy_seq(lazy (make_stmt_parser ()), lazy else_parser) in
+  let rest2_parser = lazy_seq(lazy (make_gexp_parser ()), lazy rest_parser) in
+  let if_else_parser = seq (if_parser, rest2_parser) in
+  map (fun (_, (e, (s1,(_, s2)))) -> ((If (e, s1, s2)), dummy_pos)) if_else_parser
+and make_if_parser (():unit) : (token, stmt) parser = 
+  let if_parser = satisfy (fun t -> t == IF) in
+  let rest_parser = seq(if_parser, lazy_seq(lazy (make_gexp_parser ()), lazy (make_stmt_parser ()))) in
+  map (fun (_, (e, s1)) -> If(e, s1, (Ast.skip, dummy_pos)), dummy_pos) rest_parser
+
+(*and make_if_else_parser (():unit) = 
+  let rest_parser = seq (satisfy (fun t -> t == IF), lazy_seq (lazy (make_gexp_parser ()), 
+    lazy (make_if_else_rest())))
+and make_if_else_rest (():unit) =
+  lazy_seq (lazy (satisfy (fun t -> ))) *)
+
 
 let parse(ts:token list) : program = 
   let program_parser = make_stmt_parser () in
