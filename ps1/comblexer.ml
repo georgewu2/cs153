@@ -28,10 +28,12 @@ let rec tokenize(cs:char list) : token list =
   let int_parser = map (fun i -> INT i) integer in
   let id_parser = map (fun i -> VAR i) identifier in
 
+  (* all  the strings that we must look for *)
   let str_pairs = 
   [  (str "return", RETURN); (str "if", IF); (str "else", ELSE);
   (str "while", WHILE); (str "for", FOR); (str "==", EQUAL); (str "!=", NEQ);
   (str ">=", GTE); (str "<=", LTE); (str "&&", AND); (str "||", OR); ] in
+  (* all the single characters to look for*)
   let c_pairs = 
   [ (c '+', PLUS); (c '-', MINUS); (c '*', STAR); (c '/', SLASH);
   (c '(', LPAREN); (c ')', RPAREN); (c '{', LBRACE); (c '}', RBRACE);
@@ -42,6 +44,7 @@ let rec tokenize(cs:char list) : token list =
   let c_parser = 
     List.map (function (code, t) -> const_map t code) c_pairs in
 
+  (* We look for strings first, then characters *)
   let all_tokens = [ws_parser; comment_parser; 
   int_parser; (alts str_parser); (alts c_parser); id_parser] in
   let eof_parser = map (fun _ -> EOF) eof in

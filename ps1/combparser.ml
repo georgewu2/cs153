@@ -6,6 +6,7 @@ open Ast
 
 let dummy_pos : pos = 0
 
+(* The exp parser goes through multiple stages to correctly set precedence *)
 let rec make_exp_parser (():unit) : (token, exp) parser =
   let int_parser = satisfy_opt (function INT i -> Some (Int i, dummy_pos) | _ -> None) in
   let var_parser = satisfy_opt (function VAR i -> Some (Var i, dummy_pos) | _ -> None) in
@@ -15,6 +16,7 @@ let rec make_exp_parser (():unit) : (token, exp) parser =
   let first_parser = alts [int_parser; var_parser; sub_exp_parser] in
   first_parser
 
+(* handles UMINUS with highest priority *)
 and make_aexp_parser (():unit) : (token, exp) parser = 
   let rest_parser = make_aexp_rest () in
   let aexp_parser = map (fun (op, e2) -> (Binop ((Int 0, dummy_pos), op, e2), dummy_pos)) rest_parser in
