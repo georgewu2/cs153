@@ -103,7 +103,9 @@ let rec make_stmts_parser (():unit) : (token, stmt) parser =
   let empty_parser = always (Ast.skip, dummy_pos) in 
   alts [seq_stmt_parser; empty_parser]
 
-  (* This looks for a single statement, this can be a code block in braces *)
+(* This looks for a single statement.
+ * this can be a code block in braces,
+ * Or one of the stmt types *)
 and make_stmt_parser (():unit) : (token, stmt) parser =
   let sub_parser = seq (satisfy (fun t -> t == LBRACE), 
     lazy_seq (lazy (make_stmts_parser ()), lazy (satisfy (fun t -> t == RBRACE)))) in 
