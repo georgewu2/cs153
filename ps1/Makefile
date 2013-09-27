@@ -2,7 +2,7 @@
 # enough to recompile at will.
 
 # change to a different ocamlc if you prefer (e.g., ocamlopt)
-COMPILER=ocamlc -g
+COMPILER=ocamlc
 TOPLEVEL=ocamlmktop
 
 all: clean comb yacc
@@ -29,7 +29,7 @@ toplevel: utility com
 	$(TOPLEVEL) -o ps1combtoplevel ast.cmo eval.cmo explode.cmo lcombinators.cmo comblexer.cmo combparser.cmo 
 
 yacc: com
-	ocamlyacc -v parse.mly
+	ocamlyacc parse.mly
 	$(COMPILER) -c parse.mli
 	$(COMPILER) -c parse.ml
 	ocamllex lex.mll
