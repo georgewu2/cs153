@@ -33,8 +33,7 @@ let reset() = (label_counter := 0; variables := VarSet.empty)
 
 (* find all of the variables in a program and add them to
  * the set variables *)
-let rec collect_vars (p : Ast.program) : unit = 
-    let (s,_) = p in
+let rec collect_vars ((s,_) : Ast.program) : unit = 
     match (s : Ast.rstmt) with
     | Exp e | Return e -> collect_var e
     | Seq(s1,s2) ->  collect_vars s1; collect_vars s2      
@@ -43,8 +42,7 @@ let rec collect_vars (p : Ast.program) : unit =
     | For(e1,e2,e3,s) -> 
         collect_var e1; collect_var e2; collect_var e3; collect_vars s
 
-and collect_var (e : Ast.exp) : unit = 
-    let (e,_) = e in
+and collect_var ((e,_):Ast.exp) : unit = 
     match (e : Ast.rexp) with
         | Var v -> variables := (VarSet.add v !variables)
         | Binop(e1,_,e2) | And(e1,e2) | Or(e1,e2) ->
@@ -62,9 +60,35 @@ and collect_var (e : Ast.exp) : unit =
  * value in R2 and then doing a Jr R31.
  *)
 let rec compile_stmt ((s,_):Ast.stmt) : inst list = 
-    (*************************************************************)
+    (* TODO Avoid append , use cons instead  *)
+    (*************************************************************
     raise IMPLEMENT_ME
-    (*************************************************************)
+    *************************************************************)
+    match (s : Ast.rstmt) with
+        | Return e -> (compile_exp e R2) @ Jr(R31)::[]
+        | Exp e -> (compile_exp e R1) 
+        (* We use R1 as our default result register above *)
+        | Seq(s1,s2) ->  compile_stmt s1 @ compile_stmt s2
+        | _ -> [] 
+       (* TODO implement branching
+        | If(e,s1,s2) ->  
+        | While(e,s) -> 
+        | For(e1,e2,e3,s) -> 
+   *)
+and compile_exp ((e,_):Ast.exp) (r: reg) : inst list =
+    match (e:Ast.rexp) with 
+        | Int i -> Mips.Or(R0,r,(Immed (Word32.fromInt i)))::[] 
+        (* TODO this does not handle 32-bit nums *)
+        | _ -> [] 
+        (*
+        | Var v -> variables := (VarSet.add v !variables)
+        | Binop(e1,_,e2) ->
+        | And(e1,e2) ->
+        | Or(e1,e2) ->
+        | Not e  -> collect_var e   
+        | Assign(v,e) -> *)
+    
+
 
 (* compiles Fish AST down to MIPS instructions and a list of global vars *)
 let compile (p : Ast.program) : result = 
