@@ -1,5 +1,6 @@
 (* Compile Fish AST to MIPS AST *)
 open Mips
+open Ast
 
 exception IMPLEMENT_ME
 
@@ -33,9 +34,28 @@ let reset() = (label_counter := 0; variables := VarSet.empty)
 (* find all of the variables in a program and add them to
  * the set variables *)
 let rec collect_vars (p : Ast.program) : unit = 
-    (*************************************************************)
-    raise IMPLEMENT_ME
-    (*************************************************************)
+    let (s,_) = p in
+    match (s : Ast.rstmt) with
+    | Exp e | Return e -> collect_var e
+    | Seq(s1,s2) ->  collect_vars s1; collect_vars s2      
+    | If(e,s1,s2) -> collect_var e; collect_vars s1; collect_vars s2      
+    | While(e,s) -> collect_var e; collect_vars s        
+    | For(e1,e2,e3,s) -> 
+        collect_var e1; collect_var e2; collect_var e3; collect_vars s
+
+and collect_var (e : Ast.exp) : unit = 
+    let (e,_) = e in
+    match (e : Ast.rexp) with
+        | Var v -> variables := (VarSet.add v !variables)
+        | Binop(e1,_,e2) | And(e1,e2) | Or(e1,e2) ->
+            collect_var e1;
+            collect_var e2
+        | Not e  -> collect_var e   
+        | Assign(v,e) -> 
+            variables := VarSet.add v !variables;
+            collect_var e
+        | _ -> ()
+        
 
 (* compiles a Fish statement down to a list of MIPS instructions.
  * Note that a "Return" is accomplished by placing the resulting
