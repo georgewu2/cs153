@@ -37,6 +37,9 @@ let parse_error s =
 %token <string> ID
 %token EOF
 
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE 
+
 /* Start grammer rules*/
 %%
 
@@ -49,7 +52,7 @@ stmt :
 | RETURN yexp SEMI { (Return $2, rhs 1) }
 | LBRACE stmtlist RBRACE { $2 }
 | IF LPAREN yexp RPAREN stmt ELSE stmt { (If($3,$5,$7), rhs 1) } 
-| IF LPAREN yexp RPAREN stmt { (If($3,$5,(skip, rhs 5)), rhs 1) } 
+| IF LPAREN yexp RPAREN stmt %prec LOWER_THAN_ELSE { (If($3,$5,(skip, rhs 5)), rhs 1) } 
 | WHILE LPAREN yexp RPAREN stmt { (While($3,$5), rhs 1) }
 | FOR LPAREN expopt SEMI expopt SEMI expopt RPAREN stmt {
       let e1 = match $3 with None -> (Int(0), rhs 3) | Some e -> e in
@@ -59,7 +62,7 @@ stmt :
     }
 
 stmtlist :
-  stmt { $1 }
+  { (skip, 0) }
 | stmt stmtlist { (Seq($1,$2), rhs 1) }
 
 expopt : 
