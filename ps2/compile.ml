@@ -21,6 +21,10 @@ module VarSet = Set.Make(struct
 (* a table of variables that we need for the code segment *)
 let variables : VarSet.t ref = ref (VarSet.empty)
 
+(* This is the invariant return register *)
+(* TODO we should express more of our used registers like this *)
+let rreg = R2
+
 (* generate a fresh temporary variable and store it in the variables set. *)
 let rec new_temp() = 
     let t = "T" ^ (string_of_int (new_int())) in
@@ -60,49 +64,45 @@ let rec collect_vars ((s,_) : Ast.program) : unit =
  * value in R2 and then doing a Jr R31.
  *)
 let rec compile_stmt ((s,_):Ast.stmt) : inst list = 
-    (* TODO Avoid append , use cons instead  *)
+    (* TODO Avoid append , use revappend instead  *)
     (*************************************************************
     raise IMPLEMENT_ME
     *************************************************************)
     let rec compile_exp ((e,_):Ast.exp) : inst list =
         match (e:Ast.rexp) with 
-            | Int i -> Li (R2, (Word32.fromInt i))::[] 
+            | Int i -> Li (rreg, (Word32.fromInt i))::[] 
             (* TODO this does not handle 32-bit nums *)
-            | Var v -> La(R2, v)::Lw(R2, R2, Word32.zero)::[]
+            | Var v -> La(rreg, v)::Lw(rreg, R2, Word32.zero)::[]
             | Binop(e1,b,e2) -> 
                 (let t = new_temp() in
                     (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
                     @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::[]
                     @ (match b with
-                        | Plus -> Add(R2, R2, Reg R3)::[]
-                        | Minus -> Sub(R2, R2, R3)::[]
-                        | Times -> Mul(R2, R2, R3)::[]
-                        | Div -> Mips.Div(R2, R2, R3)::[]
-                        | Eq -> Mips.Seq(R2, R2, R3)::[]
-                        | Neq -> Sne(R2, R2, R3)::[]
-                        | Lt -> Slt(R2, R2, R3)::[]
-                        | Lte -> Sle(R2, R2, R3)::[]
-                        | Gt -> Sgt (R2, R2, R3)::[]
-                        | Gte -> Sge(R2, R2, R3)::[]
+                        | Plus -> Add(rreg, R2, Reg R3)::[]
+                        | Minus -> Sub(rreg, R2, R3)::[]
+                        | Times -> Mul(rreg, R2, R3)::[]
+                        | Div -> Mips.Div(rreg, R2, R3)::[]
+                        | Eq -> Mips.Seq(rreg, R2, R3)::[]
+                        | Neq -> Sne(rreg, R2, R3)::[]
+                        | Lt -> Slt(rreg, R2, R3)::[]
+                        | Lte -> Sle(rreg, R2, R3)::[]
+                        | Gt -> Sgt (rreg, R2, R3)::[]
+                        | Gte -> Sge(rreg, R2, R3)::[]
                         ))
             | And(e1,e2) -> 
                 (let t = new_temp() in
                     (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
                     @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
-                    Mips.And(R2, R2, Reg R3)::[])
+                    Mips.And(rreg, R2, Reg R3)::[])
             | Or(e1,e2) ->
                 (let t = new_temp() in
                     (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
                     @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
-                    Mips.Or(R2, R2, Reg R3)::[])
-(*
+                    Mips.Or(rreg, R2, Reg R3)::[])
             | Not e  -> 
-                (let t = new_temp() in
-                    (compile_exp e) @ La(R3,t)::Sw(R2,R3,Word32.zero)::
-                    ::[]*)
+                (compile_exp e) @ Nor(rreg, R2, R2) ::[]
             | Assign(v,e) ->
-                (compile_exp e) @ La(R3,v)::Sw(R2, R3, Word32.zero)::[]
-            | _ -> []
+                (compile_exp e) @ La(R3,v)::Sw(rreg, R3, Word32.zero)::[]
     in 
     match (s : Ast.rstmt) with
         | Return e -> (compile_exp e) @ Add(R5, R2, Immed Word32.zero)::Jr(R31)::[]
