@@ -34,6 +34,18 @@ let reset() = (label_counter := 0; variables := VarSet.empty)
 (* find all of the variables in a program and add them to
  * the set variables *)
 let rec collect_vars ((s,_) : Ast.program) : unit = 
+    let rec collect_var ((e,_):Ast.exp) : unit = 
+        match (e : Ast.rexp) with
+            | Var v -> variables := (VarSet.add v !variables)
+            | Binop(e1,_,e2) | And(e1,e2) | Or(e1,e2) ->
+                collect_var e1; collect_var e2
+            | Not e  -> collect_var e   
+            | Assign(v,e) -> 
+                variables := VarSet.add v !variables;
+                collect_var e
+            | _ -> ()
+    in
+    
     match (s : Ast.rstmt) with
     | Exp e | Return e -> collect_var e
     | Seq(s1,s2) ->  collect_vars s1; collect_vars s2      
@@ -41,18 +53,6 @@ let rec collect_vars ((s,_) : Ast.program) : unit =
     | While(e,s) -> collect_var e; collect_vars s        
     | For(e1,e2,e3,s) -> 
         collect_var e1; collect_var e2; collect_var e3; collect_vars s
-
-and collect_var ((e,_):Ast.exp) : unit = 
-    match (e : Ast.rexp) with
-        | Var v -> variables := (VarSet.add v !variables)
-        | Binop(e1,_,e2) | And(e1,e2) | Or(e1,e2) ->
-            collect_var e1;
-            collect_var e2
-        | Not e  -> collect_var e   
-        | Assign(v,e) -> 
-            variables := VarSet.add v !variables;
-            collect_var e
-        | _ -> ()
         
 
 (* compiles a Fish statement down to a list of MIPS instructions.
@@ -64,29 +64,68 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
     (*************************************************************
     raise IMPLEMENT_ME
     *************************************************************)
+    let rec compile_exp ((e,_):Ast.exp) : inst list =
+        match (e:Ast.rexp) with 
+            | Int i -> Li (R2, (Word32.fromInt i))::[] 
+            (* TODO this does not handle 32-bit nums *)
+            | Var v -> La(R2, v)::Lw(R2, R2, Word32.zero)::[]
+            | Binop(e1,b,e2) -> 
+                (let t = new_temp() in
+                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
+                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::[]
+                    @ (match b with
+                        | Plus -> Add(R2, R2, Reg R3)::[]
+                        | Minus -> Sub(R2, R2, R3)::[]
+                        | Times -> Mul(R2, R2, R3)::[]
+                        | Div -> Mips.Div(R2, R2, R3)::[]
+                        | Eq -> Mips.Seq(R2, R2, R3)::[]
+                        | Neq -> Sne(R2, R2, R3)::[]
+                        | Lt -> Slt(R2, R2, R3)::[]
+                        | Lte -> Sle(R2, R2, R3)::[]
+                        | Gt -> Sgt (R2, R2, R3)::[]
+                        | Gte -> Sge(R2, R2, R3)::[]
+                        ))
+            | And(e1,e2) -> 
+                (let t = new_temp() in
+                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
+                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
+                    Mips.And(R2, R2, Reg R3)::[])
+            | Or(e1,e2) ->
+                (let t = new_temp() in
+                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
+                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
+                    Mips.Or(R2, R2, Reg R3)::[])
+(*
+            | Not e  -> 
+                (let t = new_temp() in
+                    (compile_exp e) @ La(R3,t)::Sw(R2,R3,Word32.zero)::
+                    ::[]*)
+            | Assign(v,e) ->
+                (compile_exp e) @ La(R3,v)::Sw(R2, R3, Word32.zero)::[]
+            | _ -> []
+    in 
     match (s : Ast.rstmt) with
-        | Return e -> (compile_exp e R2) @ Jr(R31)::[]
-        | Exp e -> (compile_exp e R1) 
-        (* We use R1 as our default result register above *)
+        | Return e -> (compile_exp e) @ Add(R5, R2, Immed Word32.zero)::Jr(R31)::[]
+        | Exp e -> compile_exp e 
+        (* We use R1 as our default result register above *) (* You can't use R1 *)
         | Seq(s1,s2) ->  compile_stmt s1 @ compile_stmt s2
-        | _ -> [] 
-       (* TODO implement branching
         | If(e,s1,s2) ->  
+            (let else_l = new_label() in
+             let end_l = new_label() in 
+            (compile_exp e) @ Beq(R2,R0,else_l)::[] @ 
+            (compile_stmt s1) @ J(end_l)::Label(else_l)::[] @ 
+            (compile_stmt s2) @ Label(end_l)::[])
         | While(e,s) -> 
+            (let condition_l = new_label() in
+             let top_l = new_label() in
+            J(condition_l)::Label(top_l)::[] @ 
+            (compile_stmt s) @ 
+            Label(condition_l)::[] @ 
+            (compile_exp e) @ 
+            Bne(R2,R0,top_l)::[])
         | For(e1,e2,e3,s) -> 
-   *)
-and compile_exp ((e,_):Ast.exp) (r: reg) : inst list =
-    match (e:Ast.rexp) with 
-        | Int i -> Mips.Or(R0,r,(Immed (Word32.fromInt i)))::[] 
-        (* TODO this does not handle 32-bit nums *)
-        | _ -> [] 
-        (*
-        | Var v -> variables := (VarSet.add v !variables)
-        | Binop(e1,_,e2) ->
-        | And(e1,e2) ->
-        | Or(e1,e2) ->
-        | Not e  -> collect_var e   
-        | Assign(v,e) -> *)
+            compile_stmt(Seq((Exp e1,0),
+                (While(e2,(Seq(s,(Exp e3, 0)), 0)), 0)), 0) 
     
 
 
