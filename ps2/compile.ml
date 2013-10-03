@@ -75,20 +75,24 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
             | Var v -> La(rreg, v)::Lw(rreg, R2, Word32.zero)::[]
             | Binop(e1,b,e2) -> 
                 (let t = new_temp() in
-                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
+                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[]
+                    (* Doing this order, we have transformed Binop(e1,b,e2) 
+                       into putting e1 into R3, and e2 into R2, so we must 
+                    switch the registers *) 
                     @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::[]
                     @ (match b with
-                        | Plus -> Add(rreg, R2, Reg R3)::[]
-                        | Minus -> Sub(rreg, R2, R3)::[]
-                        | Times -> Mul(rreg, R2, R3)::[]
-                        | Div -> Mips.Div(rreg, R2, R3)::[]
-                        | Eq -> Mips.Seq(rreg, R2, R3)::[]
-                        | Neq -> Sne(rreg, R2, R3)::[]
-                        | Lt -> Slt(rreg, R2, R3)::[]
-                        | Lte -> Sle(rreg, R2, R3)::[]
-                        | Gt -> Sgt (rreg, R2, R3)::[]
-                        | Gte -> Sge(rreg, R2, R3)::[]
+                        | Plus -> Add(rreg, R3, Reg R2)::[]
+                        | Minus -> Sub(rreg, R3, R2)::[]
+                        | Times -> Mul(rreg, R3, R2)::[]
+                        | Div -> Mips.Div(rreg, R3, R2)::[]
+                        | Eq -> Mips.Seq(rreg, R3, R2)::[]
+                        | Neq -> Sne(rreg, R3, R2)::[]
+                        | Lt -> Slt(rreg, R3, R2)::[]
+                        | Lte -> Sle(rreg, R3, R2)::[]
+                        | Gt -> Sgt (rreg, R3, R2)::[]
+                        | Gte -> Sge(rreg, R3, R2)::[]
                         ))
+            (* TODO making these short circuit *)
             | And(e1,e2) -> 
                 (let t = new_temp() in
                     (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
@@ -99,6 +103,7 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
                     (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
                     @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
                     Mips.Or(rreg, R2, Reg R3)::[])
+            
             | Not e  -> 
                 (compile_exp e) @ Nor(rreg, R2, R2) ::[]
             | Assign(v,e) ->
@@ -107,7 +112,6 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
     match (s : Ast.rstmt) with
         | Return e -> (compile_exp e) @ Add(R5, R2, Immed Word32.zero)::Jr(R31)::[]
         | Exp e -> compile_exp e 
-        (* We use R1 as our default result register above *) (* You can't use R1 *)
         | Seq(s1,s2) ->  compile_stmt s1 @ compile_stmt s2
         | If(e,s1,s2) ->  
             (let else_l = new_label() in
