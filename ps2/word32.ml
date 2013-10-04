@@ -20,5 +20,3 @@ let andb (w1,w2) = Int32.logand w1 w2
 
 let neg w = Int32.neg w
 
-let zero = 0l
-

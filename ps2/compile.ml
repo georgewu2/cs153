@@ -35,6 +35,8 @@ let rec new_temp() =
 (* reset internal state *)
 let reset() = (label_counter := 0; variables := VarSet.empty)
 
+let zero = 0l
+
 (* find all of the variables in a program and add them to
  * the set variables *)
 let rec collect_vars ((s,_) : Ast.program) : unit = 
@@ -72,14 +74,14 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
         match (e:Ast.rexp) with 
             | Int i -> Li (rreg, (Word32.fromInt i))::[] 
             (* TODO this does not handle 32-bit nums *)
-            | Var v -> La(rreg, v)::Lw(rreg, R2, Word32.zero)::[]
+            | Var v -> La(rreg, v)::Lw(rreg, R2, zero)::[]
             | Binop(e1,b,e2) -> 
                 (let t = new_temp() in
-                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[]
+                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,zero)::[]
                     (* Doing this order, we have transformed Binop(e1,b,e2) 
                        into putting e1 into R3, and e2 into R2, so we must 
                     switch the registers *) 
-                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::[]
+                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,zero)::[]
                     @ (match b with
                         | Plus -> Add(rreg, R3, Reg R2)::[]
                         | Minus -> Sub(rreg, R3, R2)::[]
@@ -92,28 +94,27 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
                         | Gt -> Sgt (rreg, R3, R2)::[]
                         | Gte -> Sge(rreg, R3, R2)::[]
                         ))
-            (* TODO making these short circuit *)
             | And(e1,e2) -> 
                 (let end_l = new_label() in
                  let t = new_temp() in
-                    (compile_exp e1) @ Beq(R2,R0,end_l)::La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
-                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
+                    (compile_exp e1) @ Beq(R2,R0,end_l)::La(R3,t)::Sw(R2,R3,zero)::[] 
+                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,zero)::
                     Mips.And(rreg, R2, Reg R3)::Label(end_l)::[])
             | Or(e1,e2) ->
                 (let end_l = new_label() in
                  let t = new_temp() in
-                    (compile_exp e1) @ Bne(R2,R0,end_l)::La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
-                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
+                    (compile_exp e1) @ Bne(R2,R0,end_l)::La(R3,t)::Sw(R2,R3,zero)::[] 
+                    @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,zero)::
                     Mips.Or(rreg, R2, Reg R3)::Label(end_l)::[])
             
             | Not e  -> 
                 (compile_exp e) @ Mips.Seq(rreg, R2, R0) ::[]
             | Assign(v,e) ->
-                (compile_exp e) @ La(R3,v)::Sw(rreg, R3, Word32.zero)::[]
+                (compile_exp e) @ La(R3,v)::Sw(rreg, R3, zero)::[]
     in 
     match (s : Ast.rstmt) with
-        | Return e -> (compile_exp e) @ Add(R5, R2, Immed Word32.zero)::Jr(R31)::[]
-        | Exp e -> compile_exp e 
+        | Return e -> (compile_exp e) @ Jr(R31)::[]
+        | Exp e -> compile_exp e
         | Seq(s1,s2) ->  compile_stmt s1 @ compile_stmt s2
         | If(e,s1,s2) ->  
             (let else_l = new_label() in
