@@ -42,12 +42,12 @@ let zero = 0l
 let rec collect_vars ((s,_) : Ast.program) : unit = 
     let rec collect_var ((e,_):Ast.exp) : unit = 
         match (e : Ast.rexp) with
-            | Var v -> variables := (VarSet.add v !variables)
+            | Var v -> variables := (VarSet.add ("var" ^ v) !variables)
             | Binop(e1,_,e2) | And(e1,e2) | Or(e1,e2) ->
                 collect_var e1; collect_var e2
             | Not e  -> collect_var e   
             | Assign(v,e) -> 
-                variables := VarSet.add v !variables;
+                variables := VarSet.add ("var" ^ v) !variables;
                 collect_var e
             | _ -> ()
     in
@@ -74,7 +74,7 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
         match (e:Ast.rexp) with 
             | Int i -> Li (rreg, (Word32.fromInt i))::[] 
             (* TODO this does not handle 32-bit nums *)
-            | Var v -> La(rreg, v)::Lw(rreg, R2, zero)::[]
+            | Var v -> La(rreg, ("var" ^ v))::Lw(rreg, R2, zero)::[]
             | Binop(e1,b,e2) -> 
                 (let t = new_temp() in
                     (compile_exp e1) @ La(R3,t)::Sw(R2,R3,zero)::[]
@@ -110,7 +110,7 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
             | Not e  -> 
                 (compile_exp e) @ Mips.Seq(rreg, R2, R0) ::[]
             | Assign(v,e) ->
-                (compile_exp e) @ La(R3,v)::Sw(rreg, R3, zero)::[]
+                (compile_exp e) @ La(R3, ("var" ^ v))::Sw(rreg, R3, zero)::[]
     in 
     match (s : Ast.rstmt) with
         | Return e -> (compile_exp e) @ Jr(R31)::[]
