@@ -94,18 +94,20 @@ let rec compile_stmt ((s,_):Ast.stmt) : inst list =
                         ))
             (* TODO making these short circuit *)
             | And(e1,e2) -> 
-                (let t = new_temp() in
-                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
+                (let end_l = new_label() in
+                 let t = new_temp() in
+                    (compile_exp e1) @ Beq(R2,R0,end_l)::La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
                     @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
-                    Mips.And(rreg, R2, Reg R3)::[])
+                    Mips.And(rreg, R2, Reg R3)::Label(end_l)::[])
             | Or(e1,e2) ->
-                (let t = new_temp() in
-                    (compile_exp e1) @ La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
+                (let end_l = new_label() in
+                 let t = new_temp() in
+                    (compile_exp e1) @ Bne(R2,R0,end_l)::La(R3,t)::Sw(R2,R3,Word32.zero)::[] 
                     @ (compile_exp e2) @ La(R3,t)::Lw(R3,R3,Word32.zero)::
-                    Mips.Or(rreg, R2, Reg R3)::[])
+                    Mips.Or(rreg, R2, Reg R3)::Label(end_l)::[])
             
             | Not e  -> 
-                (compile_exp e) @ Nor(rreg, R2, R2) ::[]
+                (compile_exp e) @ Mips.Seq(rreg, R2, R0) ::[]
             | Assign(v,e) ->
                 (compile_exp e) @ La(R3,v)::Sw(rreg, R3, Word32.zero)::[]
     in 
