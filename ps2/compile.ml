@@ -1,3 +1,4 @@
+(* George Wu and Roger Zurawicki *)
 (* Compile Fish AST to MIPS AST *)
 open Mips
 open Ast
