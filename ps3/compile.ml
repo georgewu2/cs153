@@ -1,6 +1,6 @@
 (* Compile Cish AST to MIPS AST *)
 open Mips
-
+open Ast
 exception IMPLEMENT_ME
 
 type result = { code : Mips.inst list;
@@ -11,8 +11,11 @@ let label_counter = ref 0
 let new_int() = (label_counter := (!label_counter) + 1; !label_counter)
 let new_label() = "L" ^ (string_of_int (new_int()))
 
-let rec compile (p:Ast.program) : result =
-    raise IMPLEMENT_ME
+let collect_funcs (p:Ast.program) : Mips.label list = List.map 
+	(fun f -> match f with Fn {name = name;} -> "func_"^name ) p
+
+let rec compile (p:Ast.program) : result = {code = []; data = collect_funcs p;}
+
 
 let result2string (res:result) : string = 
     let code = res.code in
