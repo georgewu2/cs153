@@ -122,7 +122,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
 	            		| _ -> raise IMPLEMENT_ME
 	            	else []
 	            in 
-	            caller_prep @ Add(sp, sp, Immed (-16l))::[]
+	            caller_prep @ Add(sp, sp, Immed (-16l))::Jal e::Add(sp, sp, Immed(16l))::[]
     in 
     match (s : Ast.rstmt) with
         | Return e -> (compile_exp e env) @ Add(R5, R2, Immed 0l)::J(env.epilogue)::[]
@@ -157,7 +157,7 @@ let compile_func ((Fn f):Ast.func) : inst list =
 	in
 	let make_epilogue (():unit) : inst list = 
 		Label(epi_l)::Lw(ra, fp, 0l)::Lw(fp, fp, 4l)::
-		Add(sp, sp, Immed 0l)::Jr(ra)::[] 
+		Add(sp, sp, Immed (Int32.of_int(length env + 8)))::Jr(ra)::[] 
 	in
 	make_prologue () @ (compile_stmt f.body env) @ make_epilogue ()
 
