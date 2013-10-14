@@ -22,7 +22,7 @@ let length (env : envir) : int = List.length (VarMap.bindings env.map)
 let add_var (v : Ast.var) (env : envir) : envir = 
 	if VarMap.mem v env.map then env
 	else
-		let offset  = (length env) * 4 + 4 in
+		let offset  = -1 * ((length env) * 4 + 8) in
 		let map = VarMap.add v offset env.map in
 		{epilogue = env.epilogue; map = map}
 let get_offset (v : Ast.var) (env : envir) : int32 = 
@@ -117,10 +117,27 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
 	            		match vars with
 	            		| a0::a1::a2::a3::tl ->
 	            			let rev_list = List.rev tl in
+	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::(compile_exp a1 env) @ 
+	            			Or(R5, R0, Reg R2)::(compile_exp a2 env) @ Or(R6, R0, Reg R2)::
+	            			(compile_exp a3 env) @ Or(R7, R0, Reg R2)::
 	            			List.fold_right (fun i a -> allocate_word::(compile_exp i env) 
 	            				@ Sw(R2, sp, 0l) :: a ) rev_list []
 	            		| _ -> raise IMPLEMENT_ME
-	            	else []
+	            	else 
+	            		match vars with
+	            		| a0::a1::a2::a3::[] ->
+	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::(compile_exp a1 env) @ 
+	            			Or(R5, R0, Reg R2)::(compile_exp a2 env) @ Or(R6, R0, Reg R2)::
+	            			(compile_exp a3 env) @ Or(R7, R0, Reg R2)::[]
+	            		| a0::a1::a2::[] ->
+	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::(compile_exp a1 env) @ 
+	            			Or(R5, R0, Reg R2)::(compile_exp a2 env) @ Or(R6, R0, Reg R2)::[]
+	            		| a0::a1::[] ->
+	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::(compile_exp a1 env) @ 
+	            			Or(R5, R0, Reg R2)::[]
+	            		| a0::[] ->
+	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::[]
+	            		| _ -> []
 	            in 
 	            caller_prep @ Add(sp, sp, Immed (-16l))::Jal e::Add(sp, sp, Immed(16l))::[]
     in 
