@@ -47,13 +47,6 @@ let new_env (epi : label) (args: Ast.var list) : envir =
 let sp = R29
 let fp = R30
 let ra = R31
- 
-let extract_name (f : Ast.func) : string =
-	let Ast.Fn s = f in
-	s.name
-
-let collect_funcs (p :Ast.program) : Mips.label list = 
-	List.map (fun f -> "func_"^extract_name f) p
 
 let allocate_word : inst = Add (sp, sp, Immed (-4l))
 let deallocate_word : inst = Add (sp, sp, Immed (4l))
@@ -133,7 +126,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
 	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::[]
 	            		| _ -> []
 	            in 
-	            caller_prep @ Add(sp, sp, Immed (-16l))::Jal e::Add(sp, sp, Immed(16l))::[]
+	            caller_prep @ Add(sp, sp, Immed (-16l))::Jal ("fun_"^e)::Add(sp, sp, Immed(16l))::[]
     in 
     match (s : Ast.rstmt) with
         | Return e -> (compile_exp e env) @ Add(R8, R2, Immed 0l)::J(env.epilogue)::[]
@@ -162,7 +155,7 @@ let compile_func ((Fn f):Ast.func) : inst list =
 	let env = new_env epi_l (f.Ast.args) in
 
 	let make_prologue (():unit) : inst list = 
-		Label(f.name)::allocate_word::Sw(ra, sp, 0l)::allocate_word::Sw(fp, sp, 0l)::
+		Label("fun_"^f.name)::allocate_word::Sw(ra, sp, 0l)::allocate_word::Sw(fp, sp, 0l)::
 		Add(fp, sp, Immed 4l)::Sw(R4, fp, 4l)::Sw(R5, fp, 8l)::
 		Sw(R6, fp, 12l)::Sw(R7, fp, 16l)::[] 
 	in
