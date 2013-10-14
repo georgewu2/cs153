@@ -17,17 +17,19 @@ module VarMap = Map.Make (String)
 
 type envir = {epilogue : label; vars : int VarMap.t; args : int VarMap.t;} 
 
-let length (env : envir) : int = List.length (VarMap.bindings env.vars)
+let num_vars (env : envir) : int = List.length (VarMap.bindings env.vars)
+let num_args (env : envir) : int = List.length (VarMap.bindings env.args)
+let length (env : envir) : int32 = Int32.of_int ((num_vars env) + 8)
 let add_var (v : Ast.var) (env : envir) : envir = 
 	if VarMap.mem v env.vars then env
 	else
-		let offset  = -1 * ((length env) * 4) in
+		let offset  = -1 * ((num_vars env) * 4) in
 		let vars = VarMap.add v offset env.vars in
 		{epilogue = env.epilogue; vars = vars; args = env.args;}
 let add_arg (v : Ast.var) (env : envir) : envir = 
     if VarMap.mem v env.args then env
     else
-        let offset  = ((length env) * 4) + 4 in
+        let offset  = ((num_args env) * 4) + 4 in
         let args = VarMap.add v offset env.args in
         {epilogue = env.epilogue; vars = env.vars; args = args}
 let get_offset (v : Ast.var) (env : envir) : int32 = 
@@ -172,7 +174,7 @@ let compile_func ((Fn f):Ast.func) : inst list =
 	in
 	let make_epilogue (():unit) : inst list = 
 		Label(epi_l)::Lw(ra, fp, 0l)::Lw(fp, fp, -4l)::
-		Add(sp, sp, Immed (Int32.of_int(length env + 8)))::Jr(ra)::[] 
+		Add(sp, sp, Immed (length env))::Jr(ra)::[] 
 	in
 	make_prologue () @ (compile_stmt f.body env) @ make_epilogue ()
 
