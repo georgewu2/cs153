@@ -22,11 +22,11 @@ let length (env : envir) : int = List.length (VarMap.bindings env.map)
 let add_var (v : Ast.var) (env : envir) : envir = 
 	if VarMap.mem v env.map then env
 	else
-		let offset  = (length env) * 4 in
+		let offset  = (length env) * 4 + 8 in
 		let map = VarMap.add v offset env.map in
 		{epilogue = env.epilogue; map = map}
-let get_offset (v : Ast.var) (env : envir) : int = 
-	VarMap.find v env.map
+let get_offset (v : Ast.var) (env : envir) : int32 = 
+	Int32.of_int(VarMap.find v env.map)
 
 
 let sp = R29
@@ -70,14 +70,12 @@ and then compile with env
 *)
 
 let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list = 
-    (* TODO Avoid append , use revappend instead  *)
     let rec compile_exp ((e,_):Ast.exp) (env : envir) : inst list =
         let push r = allocate_word::Sw (r, sp, 0l)::[] in
         let pop r = Lw (r, sp, 0l)::deallocate_word::[] in
         match (e:Ast.rexp) with 
             | Int i -> Li (R2, (Word32.fromInt i))::[] 
-            (* TODO this does not handle 32-bit nums *)
-            | Var v -> La(R2, ("var" ^ v))::Lw(R2, R2, 0l)::[]
+            | Var v -> Lw(R2, fp, get_offset v env)::[]
             | Binop(e1,b,e2) -> 
                 (
                     (compile_exp e1 env) @ push R2
@@ -97,13 +95,56 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
                         | Gt -> Sgt (R2, R3, R2)::[]
                         | Gte -> Sge(R2, R3, R2)::[]
                         ))
-            | _ -> []
+			| Ast.And(e1,e2) -> 
+                (let end_l = new_label() in
+                    (compile_exp e1 env) @ Beq(R2,R0,end_l)::push R2 
+                    @ (compile_exp e2 env) @ pop R3 @
+                    Mips.And(R2, R2, Reg R3)::Label(end_l)::[])
+            | Ast.Or(e1,e2) ->
+                (let end_l = new_label() in
+                    (compile_exp e1 env) @ Bne(R2,R0,end_l)::push R2 
+                    @ (compile_exp e2 env) @ pop R3 @
+                    Mips.Or(R2, R2, Reg R3)::Label(end_l)::[])
+            
+            | Not e  -> 
+                (compile_exp e env) @ Mips.Seq(R2, R2, R0) ::[]
+            | Assign(v,e) ->
+                (compile_exp e env) @ Sw(R2, fp, get_offset v env)::[]
+            | Call (e, vars) -> 
+	            let caller_prep = 
+	            	if List.length vars > 4 
+	            	then 
+	            		match vars with
+	            		| a0::a1::a2::a3::tl ->
+	            			let rev_list = List.rev tl in
+	            			List.fold_right (fun i a -> allocate_word::(compile_exp i env) 
+	            				@ Sw(R2, sp, 0l) :: a ) rev_list []
+	            		| _ -> raise IMPLEMENT_ME
+	            	else []
+	            in 
+	            caller_prep @ Add(sp, sp, Immed (-16l))::[]
     in 
     match (s : Ast.rstmt) with
-        | Return e -> (compile_exp e env) @ J(env.epilogue)::[]
+        | Return e -> (compile_exp e env) @ Add(R5, R2, Immed 0l)::J(env.epilogue)::[]
         | Exp e -> compile_exp e env
         | Ast.Seq(s1,s2) ->  compile_stmt s1 env @ compile_stmt s2 env
-        | _ -> []
+        | If(e,s1,s2) ->  
+            (let else_l = new_label() in
+             let end_l = new_label() in 
+            (compile_exp e env) @ Beq(R2,R0,else_l)::[] @ 
+            (compile_stmt s1 env) @ J(end_l)::Label(else_l)::[] @ 
+            (compile_stmt s2 env) @ Label(end_l)::[])
+        | While(e,s) -> 
+            (let condition_l = new_label() in
+             let top_l = new_label() in
+            J(condition_l)::Label(top_l)::[] @ (compile_stmt s env) @ Label(condition_l)::[] @ 
+            (compile_exp e env) @ Bne(R2,R0,top_l)::[])
+        | For(e1,e2,e3,s) -> 
+            compile_stmt (Ast.Seq((Exp e1,0),
+                (While(e2,(Ast.Seq(s,(Exp e3, 0)), 0)), 0)), 0) env
+        | Let (v,e,s) -> 
+        	let env = add_var ("var_" ^ v) env in
+        		compile_exp e env @ allocate_word::Sw(R2, fp, get_offset v env)::compile_stmt s env
 
 let compile_func ((Fn f):Ast.func) : inst list = 
 	let epi_l = new_label() in
@@ -121,7 +162,7 @@ let compile_func ((Fn f):Ast.func) : inst list =
 	make_prologue () @ (compile_stmt f.body env) @ make_epilogue ()
 
 let rec compile (p:Ast.program) : result = 
-	let code = compile_func (List.hd p) in
+	let code = List.fold_right (fun i a -> compile_func i @ a) p [] in
 	{code = code; data = [];}
 
 let result2string (res:result) : string = 
