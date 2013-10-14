@@ -110,7 +110,7 @@ let compile_func ((Fn f):Ast.func) : inst list =
 	let env = collect_vars f.body (new_env epi_l) in
 
 	let make_prologue (():unit) : inst list = 
-		allocate_word::Sw(ra, sp, 0l)::allocate_word::Sw(fp, sp, 0l)::
+		Label(f.name)::allocate_word::Sw(ra, sp, 0l)::allocate_word::Sw(fp, sp, 0l)::
 		Add(fp, sp, Immed 4l)::Sw(R4, fp, 4l)::Sw(R5, fp, 8l)::
 		Sw(R6, fp, 12l)::Sw(R7, fp, 16l)::[] 
 	in
