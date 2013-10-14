@@ -23,13 +23,13 @@ let length (env : envir) : int32 = Int32.of_int ((num_vars env) + 8)
 let add_var (v : Ast.var) (env : envir) : envir = 
 	if VarMap.mem v env.vars then env
 	else
-		let offset  = -1 * ((length env) * 4 + 8) in
+		let offset  = -1 * ((num_vars env) * 4 + 8) in
 		let vars = VarMap.add v offset env.vars in
 		{epilogue = env.epilogue; vars = vars; args = env.args;}
 let add_arg (v : Ast.var) (env : envir) : envir = 
     if VarMap.mem v env.args then env
     else
-        let offset  = ((num_args env) * 4) + 4 in
+        let offset  = ((num_args env) * 4 + 4) in
         let args = VarMap.add v offset env.args in
         {epilogue = env.epilogue; vars = env.vars; args = args}
 let get_offset (v : Ast.var) (env : envir) : int32 = 
@@ -41,7 +41,7 @@ let get_offset (v : Ast.var) (env : envir) : int32 =
         Int32.of_int offset
 let new_env (epi : label) (args: Ast.var list) : envir = 
     List.fold_right 
-        (fun i a -> add_arg i a) args
+        (fun i a -> add_arg ("var_" ^ i) a) args
         {epilogue = epi; vars = VarMap.empty; args = VarMap.empty;}
 
 let sp = R29
@@ -69,7 +69,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
         let pop r = Lw (r, sp, 0l)::deallocate_word::[] in
         match (e:Ast.rexp) with 
             | Int i -> Li (R2, (Word32.fromInt i))::[] 
-            | Var v -> Lw(R2, fp, get_offset v env)::[]
+            | Var v -> Lw(R2, fp, get_offset ("var_" ^ v) env)::[]
             | Binop(e1,b,e2) -> 
                 (
                     (compile_exp e1 env) @ push R2
@@ -103,7 +103,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
             | Not e  -> 
                 (compile_exp e env) @ Mips.Seq(R2, R2, R0) ::[]
             | Assign(v,e) ->
-                (compile_exp e env) @ Sw(R2, fp, get_offset v env)::[]
+                (compile_exp e env) @ Sw(R2, fp, get_offset ("var_" ^ v) env)::[]
             | Call (e, vars) -> 
 	            let caller_prep = 
 	            	if List.length vars > 4 
@@ -155,7 +155,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
                 (While(e2,(Ast.Seq(s,(Exp e3, 0)), 0)), 0)), 0) env
         | Let (v,e,s) -> 
         	let env = add_var ("var_" ^ v) env in
-        		compile_exp e env @ allocate_word::Sw(R2, fp, get_offset v env)::compile_stmt s env
+        		compile_exp e env @ allocate_word::Sw(R2, fp, get_offset ("var_" ^ v) env)::compile_stmt s env
 
 let compile_func ((Fn f):Ast.func) : inst list = 
 	let epi_l = new_label() in
