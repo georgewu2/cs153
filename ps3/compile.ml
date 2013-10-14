@@ -133,7 +133,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
 	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::[]
 	            		| _ -> []
 	            in 
-	            caller_prep @ Add(sp, sp, Immed (-16l))::Jal e::Add(sp, sp, Immed(16l))::[]
+	            caller_prep @ Add(sp, sp, Immed (-16l))::Jal ("func_" ^ e)::Add(sp, sp, Immed(16l))::[]
     in 
     match (s : Ast.rstmt) with
         | Return e -> (compile_exp e env) @ Add(R8, R2, Immed 0l)::J(env.epilogue)::[]
@@ -162,7 +162,11 @@ let compile_func ((Fn f):Ast.func) : inst list =
 	let env = new_env epi_l (f.Ast.args) in
 
 	let make_prologue (():unit) : inst list = 
-		Label(f.name)::allocate_word::Sw(ra, sp, 0l)::allocate_word::Sw(fp, sp, 0l)::
+		let fun_name = 
+			if f.name = "main" then f.name
+			else "func_" ^ f.name 
+		in 
+		Label(fun_name)::allocate_word::Sw(ra, sp, 0l)::allocate_word::Sw(fp, sp, 0l)::
 		Add(fp, sp, Immed 4l)::Sw(R4, fp, 4l)::Sw(R5, fp, 8l)::
 		Sw(R6, fp, 12l)::Sw(R7, fp, 16l)::[] 
 	in
