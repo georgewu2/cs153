@@ -22,7 +22,7 @@ let length (env : envir) : int = List.length (VarMap.bindings env.map)
 let add_var (v : Ast.var) (env : envir) : envir = 
 	if VarMap.mem v env.map then env
 	else
-		let offset  = (length env) * 4 + 8 in
+		let offset  = (length env) * 4 + 4 in
 		let map = VarMap.add v offset env.map in
 		{epilogue = env.epilogue; map = map}
 let get_offset (v : Ast.var) (env : envir) : int32 = 
@@ -125,7 +125,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
 	            caller_prep @ Add(sp, sp, Immed (-16l))::Jal e::Add(sp, sp, Immed(16l))::[]
     in 
     match (s : Ast.rstmt) with
-        | Return e -> (compile_exp e env) @ Add(R5, R2, Immed 0l)::J(env.epilogue)::[]
+        | Return e -> (compile_exp e env) @ Add(R8, R2, Immed 0l)::J(env.epilogue)::[]
         | Exp e -> compile_exp e env
         | Ast.Seq(s1,s2) ->  compile_stmt s1 env @ compile_stmt s2 env
         | If(e,s1,s2) ->  
@@ -156,7 +156,7 @@ let compile_func ((Fn f):Ast.func) : inst list =
 		Sw(R6, fp, 12l)::Sw(R7, fp, 16l)::[] 
 	in
 	let make_epilogue (():unit) : inst list = 
-		Label(epi_l)::Lw(ra, fp, 0l)::Lw(fp, fp, 4l)::
+		Label(epi_l)::Lw(ra, fp, 0l)::Lw(fp, fp, -4l)::
 		Add(sp, sp, Immed (Int32.of_int(length env + 8)))::Jr(ra)::[] 
 	in
 	make_prologue () @ (compile_stmt f.body env) @ make_epilogue ()
