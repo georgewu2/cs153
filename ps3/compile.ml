@@ -15,18 +15,33 @@ let new_label() = "L" ^ (string_of_int (new_int()))
 
 module VarMap = Map.Make (String)
 
-type envir = {epilogue : label; map : int VarMap.t} 
+type envir = {epilogue : label; vars : int VarMap.t; args : int VarMap.t;} 
 
-let new_env (epi : label) : envir = {epilogue = epi; map = VarMap.empty;}
-let length (env : envir) : int = List.length (VarMap.bindings env.map)
+let length (env : envir) : int = List.length (VarMap.bindings env.vars)
 let add_var (v : Ast.var) (env : envir) : envir = 
-	if VarMap.mem v env.map then env
+	if VarMap.mem v env.vars then env
 	else
-		let offset  = (length env) * 4 + 4 in
-		let map = VarMap.add v offset env.map in
-		{epilogue = env.epilogue; map = map}
+		let offset  = -1 * ((length env) * 4) in
+		let vars = VarMap.add v offset env.vars in
+		{epilogue = env.epilogue; vars = vars; args = env.args;}
+let add_arg (v : Ast.var) (env : envir) : envir = 
+    if VarMap.mem v env.args then env
+    else
+        let offset  = ((length env) * 4) + 4 in
+        let args = VarMap.add v offset env.args in
+        {epilogue = env.epilogue; vars = env.vars; args = args}
 let get_offset (v : Ast.var) (env : envir) : int32 = 
-	Int32.of_int(VarMap.find v env.map)
+	let offset = 
+        if VarMap.mem v env.vars
+        then VarMap.find v env.vars
+        else VarMap.find v env.args
+    in
+        Int32.of_int offset
+let new_env (epi : label) (args: Ast.var list) : envir = 
+    List.fold_right 
+        (fun i a -> add_arg i a) args
+        {epilogue = epi; vars = VarMap.empty; args = VarMap.empty;}
+    
 
 
 let sp = R29
@@ -148,7 +163,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
 
 let compile_func ((Fn f):Ast.func) : inst list = 
 	let epi_l = new_label() in
-	let env = collect_vars f.body (new_env epi_l) in
+	let env = new_env epi_l (f.Ast.args) in
 
 	let make_prologue (():unit) : inst list = 
 		Label(f.name)::allocate_word::Sw(ra, sp, 0l)::allocate_word::Sw(fp, sp, 0l)::
