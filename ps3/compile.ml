@@ -103,6 +103,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
             | Assign(v,e) ->
                 (compile_exp e env) @ Sw(R2, fp, get_offset ("var_" ^ v) env)::[]
             | Call (e, vars) -> 
+            	let temp_length = Int32.of_int (max (List.length vars * 4) 16) in
 	            let caller_prep = 
 	            	if List.length vars > 4 
 	            	then 
@@ -132,7 +133,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
 	            		| _ -> []
 	            in 
 	            caller_prep @ Add(sp, sp, Immed (-16l))::Jal (func_name e)
-                ::Add(sp, sp, Immed(16l))::[]
+                ::Add(sp, sp, Immed(temp_length))::[]
     in 
     match (s : Ast.rstmt) with
         | Return e -> (compile_exp e env) @ Add(R8, R2, Immed 0l)::J(env.epilogue)::[]
