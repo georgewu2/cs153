@@ -119,15 +119,16 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
 	            	else 
 	            		match vars with
 	            		| a0::a1::a2::a3::[] ->
-	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::(compile_exp a1 env) @ 
-	            			Or(R5, R0, Reg R2)::(compile_exp a2 env) @ Or(R6, R0, Reg R2)::
-	            			(compile_exp a3 env) @ Or(R7, R0, Reg R2)::[]
+	            			(compile_exp a0 env) @ push R2 @ (compile_exp a1 env) @ 
+	            			push R2 @ (compile_exp a2 env) @ push R2 @
+	            			(compile_exp a3 env) @ Or(R7, R0, Reg R2) 
+                            :: pop R6 @ pop R5 @ pop R4
 	            		| a0::a1::a2::[] ->
-	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::(compile_exp a1 env) @ 
-	            			Or(R5, R0, Reg R2)::(compile_exp a2 env) @ Or(R6, R0, Reg R2)::[]
+	            			(compile_exp a0 env) @ push R2 @ (compile_exp a1 env) @ push R2
+                             @ (compile_exp a2 env) @ Or(R6, R0, Reg R2) :: pop R5 @ pop R4
 	            		| a0::a1::[] ->
-	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::(compile_exp a1 env) @ 
-	            			Or(R5, R0, Reg R2)::[]
+	            			(compile_exp a0 env) @ Mips.Or(R4,R2,Immed 0l) :: 
+                            (compile_exp a1 env) @ Or(R5, R0, Reg R2)::pop R4
 	            		| a0::[] ->
 	            			(compile_exp a0 env) @ Or(R4, R0, Reg R2)::[]
 	            		| _ -> []
