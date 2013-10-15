@@ -1,3 +1,4 @@
+(* George Wu and Roger Zurawicki *)
 (* Compile Cish AST to MIPS AST *)
 open Ast
 open Mips
@@ -137,7 +138,7 @@ let rec compile_stmt ((s,_):Ast.stmt) (env : envir) : inst list =
                 ::Add(sp, sp, Immed(temp_length))::[]
     in 
     match (s : Ast.rstmt) with
-        | Return e -> (compile_exp e env) @ Add(R8, R2, Immed 0l)::J(env.epilogue)::[]
+        | Return e -> (compile_exp e env) @ J(env.epilogue)::[]
         | Exp e -> compile_exp e env
         | Ast.Seq(s1,s2) ->  compile_stmt s1 env @ compile_stmt s2 env
         | If(e,s1,s2) ->  
