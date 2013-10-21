@@ -13,7 +13,7 @@ let parse_file () =
   let ch = open_in argv.(1) in
   Scish_parse.program Scish_lex.lexer (Lexing.from_channel ch)
 
-let compile_prog prog = Scish_compile.compile_exp prog
+let compile_prog prog = Scish_compile.compile prog
 
 let run_prog prog = Scish_eval.run prog
 
